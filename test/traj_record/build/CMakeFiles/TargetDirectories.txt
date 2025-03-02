@@ -1,5 +1,0 @@
-/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/build/CMakeFiles/edit_cache.dir
-/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/build/CMakeFiles/drawTrajMap.dir
-/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/build/CMakeFiles/rebuild_cache.dir
-/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/build/CMakeFiles/calTrajInfo.dir
-/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/build/CMakeFiles/calPathInfo.dir

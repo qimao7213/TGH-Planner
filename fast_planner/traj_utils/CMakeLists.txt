@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   poly_traj
   roscpp
   std_msgs
-  cv_bridge_1
+  cv_bridge
 )
 
 find_package(Eigen3 REQUIRED)

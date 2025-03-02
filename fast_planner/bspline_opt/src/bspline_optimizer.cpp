@@ -25,7 +25,7 @@
 
 #include "bspline_opt/bspline_optimizer.h"
 #include <nlopt.hpp>
-#include <glog/logging.h>
+// #include <glog/logging.h>
 
 // #define LOG_INFO
 const double thredHalfFOV = 0.587; // cos(40度)^2

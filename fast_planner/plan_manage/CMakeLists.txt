@@ -7,7 +7,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(PCL 1.7 REQUIRED)
-find_package(glog REQUIRED)
+# find_package(glog REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
@@ -19,7 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   bspline_opt
   traj_utils
   message_generation
-  cv_bridge_1
+  cv_bridge
   rosparam
   common_srvs
 )
@@ -65,7 +65,7 @@ target_link_libraries(fast_planner_node
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBS}
   Eigen3::Eigen
-  glog::glog
+  # glog::glog
   )
 
 add_executable(traj_server src/traj_server.cpp)

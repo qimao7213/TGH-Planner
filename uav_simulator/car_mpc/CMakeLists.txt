@@ -13,7 +13,6 @@ endif()
 
 find_package(Eigen3 REQUIRED)
 find_package(osqp REQUIRED)
-find_package(glog REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   nodelet
@@ -43,7 +42,7 @@ add_library(${PROJECT_NAME}_nodelet
 
 target_link_libraries(${PROJECT_NAME}_nodelet
   ${catkin_LIBRARIES}
-  osqp::osqp glog::glog
+  osqp::osqp 
 )
 
 add_dependencies(${PROJECT_NAME}_nodelet

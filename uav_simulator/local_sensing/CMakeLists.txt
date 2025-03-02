@@ -22,12 +22,12 @@ if(ENABLE_CUDA)
 
   SET(CUDA_PROPAGATE_HOST_FLAGS OFF)
 
-  find_package(OpenCV 4.7.0 EXACT REQUIRED)
+  find_package(OpenCV REQUIRED)
   find_package(Eigen3 REQUIRED)
   find_package(Boost REQUIRED COMPONENTS system filesystem)
 
   find_package(catkin REQUIRED COMPONENTS
-      roscpp roslib cmake_modules cv_bridge_1 image_transport pcl_ros sensor_msgs geometry_msgs nav_msgs quadrotor_msgs dynamic_reconfigure)
+      roscpp roslib cmake_modules cv_bridge image_transport pcl_ros sensor_msgs geometry_msgs nav_msgs quadrotor_msgs dynamic_reconfigure)
   generate_dynamic_reconfigure_options(
     cfg/local_sensing_node.cfg
   )

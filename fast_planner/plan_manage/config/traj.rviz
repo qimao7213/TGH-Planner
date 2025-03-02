@@ -12,8 +12,6 @@ Panels:
         - /Simulation1
         - /MPC1/mpc_path_ref1
         - /planning_2D1
-        - /UFOMap1/Voxel Rendering1
-        - /UFOMap1/Occupancy Thresholds1
         - /TF1/Frames1
         - /Image1
       Splitter Ratio: 0.5274999737739563
@@ -582,12 +580,7 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
-            base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            camera_link:
+            car_model:
               Alpha: 1
               Show Axes: false
               Show Trail: false
@@ -885,60 +878,6 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: fiesta
-    - Class: UFOMap
-      Enabled: true
-      Information:
-        "# Inner Nodes": 17,985
-        "# Leaf Nodes": 35,720
-        Resolution: 10 cm
-        Size: 420.55 KiB
-      Min. Depth: 0
-      Name: UFOMap
-      Occupancy Thresholds:
-        Free (%): 50
-        Occupied (%): 60
-      Queue size: 10
-      UFOMap Topic: /ufomap_mapping_server_node/map
-      Use BBX:
-        BBX Frame: <Fixed Frame>
-        Maximum:
-          X: 1000
-          Y: 1000
-          Z: 1000
-        Minimum:
-          X: -1000
-          Y: -1000
-          Z: -1000
-        Value: false
-      Value: true
-      Voxel Rendering:
-        Free:
-          Alpha: 0.800000011920929
-          Coloring:
-            Color: 0; 255; 0
-            Factor: 0.800000011920929
-            Value: Fixed
-          Scale: 1
-          Style: Flat Squares
-          Value: false
-        Occupied:
-          Alpha: 1
-          Coloring:
-            Color: 0; 0; 255
-            Factor: 0.800000011920929
-            Value: Z-Axis
-          Scale: 1
-          Style: Flat Squares
-          Value: true
-        Unknown:
-          Alpha: 0.800000011920929
-          Coloring:
-            Color: 255; 255; 255
-            Factor: 0.800000011920929
-            Value: Fixed
-          Scale: 1
-          Style: Flat Squares
-          Value: false
     - Class: rviz/TF
       Enabled: false
       Filter (blacklist): ""
@@ -1218,7 +1157,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 46.0222282409668
+      Distance: 60.13470458984375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1226,15 +1165,15 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -5.098330497741699
-        Y: -30.728456497192383
+        X: -8.595985412597656
+        Y: -19.243820190429688
         Z: -2.3834472813177854e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5597963333129883
       Target Frame: <Fixed Frame>
       Yaw: 4.740414142608643
     Saved:
@@ -1356,5 +1295,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1920
-  X: 1920
-  Y: 0
+  X: 2560
+  Y: 27

@@ -6,16 +6,16 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   visualization_msgs
-  cv_bridge_1
+  cv_bridge
   message_filters
   tf2
   tf2_ros
   tf2_geometry_msgs
 )
-find_package(glog REQUIRED)
+# find_package(glog REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.7 REQUIRED)
-find_package(OpenCV 4.7.0 EXACT REQUIRED)
+find_package(OpenCV REQUIRED)
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES plan_env

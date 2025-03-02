@@ -4,14 +4,14 @@ project(gazebo_simulator)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
-find_package(OpenCV 4.7.0 EXACT REQUIRED)
+find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   gazebo_ros
   gazebo_msgs
-  cv_bridge_1
+  cv_bridge
   image_transport
   tf2_ros
   pcl_ros

@@ -243,8 +243,8 @@ void FastPlannerManager::initPlanModules(ros::NodeHandle& nh) {
     topo_prm_->init(nh);
     topo_prm_->setOnly2D(only2D_);
   }
-  google::InitGoogleLogging("");
-  google::SetLogDestination(google::GLOG_INFO, (file_path + "test/debuglog/").c_str());      
+  // google::InitGoogleLogging("");
+  // google::SetLogDestination(google::GLOG_INFO, (file_path + "test/debuglog/").c_str());      
   
   record_file_.open(file_path + "test/traj_record/data/planning_time_cost.txt", std::ios::out);
   if(!record_file_.is_open())

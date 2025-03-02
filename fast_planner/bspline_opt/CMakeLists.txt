@@ -3,20 +3,20 @@ project(bspline_opt)
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.7 REQUIRED)
-find_package(glog REQUIRED)
+# find_package(glog REQUIRED)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
   visualization_msgs
-  cv_bridge_1
+  cv_bridge
 #  nlopt
   plan_env
   bspline
 )
 
-set (NLOPT_DIR "/home/bhrqhb/ThirdLibrary/nlopt-2.7.1/")
+set (NLOPT_DIR "/home/bit/catkin_ws_TGH_planner/3rd/qhb/qhb/nlopt-2.7.1/")
 find_package(NLopt REQUIRED)
 set(NLopt_INCLUDE_DIRS ${NLOPT_INCLUDE_DIR})
 set(CMAKE_PREFIX_PATH "/usr/local/lib/cmake/nlopt")
@@ -47,7 +47,7 @@ target_link_libraries( bspline_opt
     ${catkin_LIBRARIES} 
     # ${NLOPT_LIBRARIES}
     /usr/local/lib/libnlopt.so
-    glog::glog
+    # glog::glog
     )  
 
 add_executable( nlopt_test src/nlopt_test.cpp)
@@ -55,4 +55,5 @@ target_link_libraries(nlopt_test
     ${catkin_LIBRARIES} 
     # ${NLOPT_LIBRARIES}
     /usr/local/lib/libnlopt.so
-    glog::glog)
+    # glog::glog
+    )
