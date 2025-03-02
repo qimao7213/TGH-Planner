@@ -1,0 +1,9 @@
+# image: 115_indoor.pgm
+# resolution: 0.3
+
+image: perception_map.png
+resolution: 0.02
+origin: [ 0.0, 0.0, 0.0 ]
+occupied_thresh: 0.1
+free_thresh: 0.05
+negate: 0

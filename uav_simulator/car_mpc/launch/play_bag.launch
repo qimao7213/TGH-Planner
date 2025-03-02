@@ -1,0 +1,9 @@
+<launch>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find car_simulator)/config/rviz_sim.rviz">
+  </node>
+
+  <node pkg="rosbag" type="play" name="play" args="-l -r 0.5 $(find car_mpc)/../../bag/1.bag" output="screen">
+  </node>
+
+</launch>

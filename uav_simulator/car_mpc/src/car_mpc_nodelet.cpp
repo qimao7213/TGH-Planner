@@ -1,0 +1,379 @@
+#include <car_msgs/CarCmd.h>
+#include <nav_msgs/Odometry.h>
+#include <geometry_msgs/Twist.h>
+#include <std_msgs/Float64.h>
+#include <nodelet/nodelet.h>
+#include <ros/ros.h>
+#include <nodelet/nodelet.h>
+#include <Eigen/Geometry>
+#include "car_mpc.hpp"
+#include <tf/transform_datatypes.h>
+#include <tf/transform_broadcaster.h>
+double Mod2Pi(const double &x) {
+    double v = fmod(x, 2 * M_PI);
+      if (v < -M_PI) {
+        v += 2.0 * M_PI;
+    } else if (v > M_PI) {
+        v -= 2.0 * M_PI;
+    }
+    return v;
+}
+
+using std::vector;
+using fast_planner::NonUniformBspline;
+namespace car_mpc {
+class Nodelet : public nodelet::Nodelet {
+ private:
+  std::shared_ptr<CarMpc> mpcPtr_;
+  ros::Timer mpcplan_timer_;
+  ros::Subscriber bspline_sub_, replan_sub_, new_sub_, odom_sub_;
+  ros::Subscriber mpc_pause_sub_;
+  ros::Publisher  cmd_pub_;
+  ros::Publisher  cmd_ros_pub_;
+
+  nav_msgs::Odometry car_odom_;
+  VectorX state_;  
+  VectorU last_u_;
+  car_msgs::CarCmd cmd_;
+
+
+  bool receive_traj_ = false;      //是不是收到了新的轨迹，如果收到了，那么就要设置新轨迹
+  bool init_odom_ = false;         //是不是收到了odom，如果收到了，则可以开始mpc plan
+  bool init_path_set_ = false;     //是不是已经将一条轨迹设置给了mpc planner，如果设置了，又没有新的轨迹进来，则不用重复设置
+  bool mpc_ready_ = false;
+  vector<NonUniformBspline> traj_; //一条轨迹，里面有位置、速度、加速度、yaw、dotyaw、ddotyaw，都是B样条
+  double traj_duration_;
+  ros::Time start_time_;
+  int traj_id_;
+  double delta_max_;               //最大转向角度
+  double wheel_base_;
+  double vel_max_ = 0.5;
+  double omega_max_ = 1.57;
+  double dt_;
+  double vel_odom_;
+  double k_vel_ = 1.0, k_omega_ = 1.0;
+  double kp_ = 0.02, kd_ = 0.0;
+  double yaw_error_last_ = 0.0;
+
+  bool arrive_goal = false;
+  bool mpc_pause = false;              //刚开始的时候，是不会pause的；后面如果重置了robot pose，那么就要让mpc停止，直到新的轨迹进来后再继续
+
+  vector<Eigen::Vector3d> traj_cmd_, traj_real_;
+
+  void mpcplan_timer_callback(const ros::TimerEvent& event) 
+  {
+    if(mpc_pause) return;    
+    if(!init_odom_) return;
+    if(!init_path_set_ && receive_traj_)//如果还没有初始化路径，就初始化
+    {
+      if(traj_.empty()) return;
+      mpcPtr_->setBsplineTraj(traj_);
+      init_path_set_ = true;
+      receive_traj_ = false;
+      mpc_ready_ = true;
+    }
+    if(! mpc_ready_) return;
+    // 开启mpc跟踪部分
+    ros::Time time_now = ros::Time::now();
+    double t_cur = (time_now - start_time_).toSec() + 0.005;
+    // 这里不能直接用t_cur，而是需要每一次都校正。
+    double delta_t = 0.02;
+    int check_num = 10;
+    double min_dis = 100; double min_t = t_cur;
+    for(int i = -check_num; i <= check_num; ++i)
+    {
+      double dis = (state_.head(2) - traj_[0].evaluateDeBoorT(t_cur + i * delta_t).head(2)).squaredNorm();
+      if(dis < min_dis)
+      {
+        min_dis = dis;
+        min_t = t_cur + i * delta_t;
+      }
+    }
+    t_cur = min_t;
+
+    t_cur = min(t_cur, traj_duration_);
+    t_cur = max(t_cur, 0.00);
+    // 如果是直接从bsplie里面读取速度和角速度的话，就打开下面这一段。否则就是通过mpc算的。
+    if(0){
+      Eigen::Vector3d pos, vel, acc, pos_f;
+      double yaw, yawdot;
+    
+      if (t_cur < traj_duration_ && t_cur >= 0.0) {
+        pos = traj_[0].evaluateDeBoorT(t_cur);
+        vel = traj_[1].evaluateDeBoorT(t_cur);
+        acc = traj_[2].evaluateDeBoorT(t_cur);
+        yaw = traj_[3].evaluateDeBoorT(t_cur)[0];
+        yawdot = traj_[4].evaluateDeBoorT(t_cur)[0];
+    
+        double tf = min(traj_duration_, t_cur + 2.0);
+        pos_f = traj_[0].evaluateDeBoorT(tf);
+    
+      } else if (t_cur >= traj_duration_) {
+        /* hover when finish traj_ */
+        pos = traj_[0].evaluateDeBoorT(traj_duration_);
+        vel.setZero();
+        acc.setZero();
+        yaw = traj_[3].evaluateDeBoorT(traj_duration_)[0];
+        yawdot = traj_[4].evaluateDeBoorT(traj_duration_)[0];
+    
+        pos_f = pos;
+    
+      } else {
+        cout << "[Traj server]: invalid time." << endl;
+      }
+
+      double yaw_error = yaw - state_(2);
+      
+      yaw_error = Mod2Pi(yaw_error);
+      if(yaw_error > M_PI) yaw_error -= 2*M_PI;
+      else if (yaw_error < -M_PI) yaw_error += 2-M_PI;      
+      // ROS_INFO_STREAM("desired and current: " << yaw << ", " << state_(2) << ", error: " << yaw_error);
+
+      // const double kp = 0.02;
+      // const double kd = 0.00000;
+      double yaw_vel = kp_ * yaw_error + kd_ * (yaw_error - yaw_error_last_) / 0.0007;
+
+      double vel_val = vel.norm();
+      if(vel_val < -vel_max_) vel_val = -vel_max_;
+      else if (vel_val > vel_max_) vel_val = vel_max_;
+      if(yaw_vel < -omega_max_) yaw_vel = -omega_max_;
+      else if (yaw_vel > omega_max_) yaw_vel = omega_max_;
+
+      if(vel_val < -vel_max_) vel_val = -vel_max_;
+      else if (vel_val > vel_max_) vel_val = vel_max_;
+      if(yawdot < -omega_max_) yawdot = -omega_max_;
+      else if (yawdot > omega_max_) yawdot = omega_max_;
+
+      // vel *= k_vel_ ; 
+      // omega *= k_omega_;
+      // 创建 cmd_vel 消息
+      geometry_msgs::Twist cmd_vel;
+      cmd_vel.linear.x = vel_val;          // 线速度
+      cmd_vel.angular.z = yaw_vel;     // 角速度
+
+      // 发布 cmd_vel 消息
+      cmd_ros_pub_.publish(cmd_vel);
+      return;
+    }
+
+    int ret = mpcPtr_->solveQP(state_, t_cur);
+
+    ros::Time t2 = ros::Time::now();
+    double solve_time = (t2 - time_now).toSec();
+    // std::cout << "solve qp costs: " << 1e3 * solve_time << "ms" << std::endl;
+    // TODO
+    car_msgs::CarCmd msg;
+    msg.header.frame_id = "world";
+    msg.header.stamp = ros::Time::now();
+
+    VectorX x;
+    VectorU u;
+    // 这里是想在mpc算失败的时候纠正一下
+    if(ret != 1 && ret != 2)
+    {
+      mpcPtr_->visualization(t_cur);
+      msg.a = -last_u_(0);
+      msg.delta = -last_u_(1);
+      cmd_pub_.publish(msg);
+
+      // //下面是将给阿克曼的输入，转换为cmd_vel的
+      // double omega = vel_odom_ * std::tan(msg.delta) / wheel_base_;
+      // double vel = vel_odom_ + 0.0007 * msg.a;
+      // if(vel < -vel_max_) vel = -vel_max_;
+      // else if (vel > vel_max_) vel = vel_max_;
+      // if(omega < -omega_max_) omega = -omega_max_;
+      // else if (omega > omega_max_) omega = omega_max_;
+      // vel *= k_vel_; 
+      // omega *= k_omega_;
+      // // 创建 cmd_vel 消息
+      // geometry_msgs::Twist cmd_vel;
+      // cmd_vel.linear.x = vel;          // 线速度
+      // cmd_vel.angular.z = omega;     // 角速度
+
+      // // 发布 cmd_vel 消息
+      // cmd_ros_pub_.publish(cmd_vel);
+      return;
+    }    
+    else
+    {
+      mpcPtr_->getPredictXU(0, x, u);
+    }
+    
+    // if(std::abs(u(0)) >= 1.5 * 1.05 || std::abs(u(1)) >= 65/57.3 * 1.05)
+      // ROS_INFO_STREAM("u: " << u(0) << ", x: " << u(1));
+    // std::cout << "---------------------" << std::endl;
+    
+    msg.a = u(0);
+    msg.delta = min(u(1), delta_max_/57.3);
+    cmd_pub_.publish(msg);
+    mpcPtr_->visualization(t_cur);
+    last_u_ = u;
+
+    // //下面是将给阿克曼的输入，转换为cmd_vel的
+    // double omega = vel_odom_ * std::tan(msg.delta) / wheel_base_;
+    // double vel = vel_odom_ + 0.0007 * msg.a;
+    // if(vel < -vel_max_) vel = -vel_max_;
+    // else if (vel > vel_max_) vel = vel_max_;
+    // if(omega < -omega_max_) omega = -omega_max_;
+    // else if (omega > omega_max_) omega = omega_max_;
+
+    // vel *= k_vel_ ; 
+    // omega *= k_omega_;
+    // // 创建 cmd_vel 消息
+    // geometry_msgs::Twist cmd_vel;
+    // cmd_vel.linear.x = vel;          // 线速度
+    // cmd_vel.angular.z = omega;     // 角速度
+    // // 发布 cmd_vel 消息
+    // cmd_ros_pub_.publish(cmd_vel);
+    
+    return;
+  }
+
+  // 订阅odom，更新当前状态，并记录历史轨迹
+  void odomCallbck(const nav_msgs::Odometry::ConstPtr& msg) {
+    // std::cout << "odomCallback start error?" << std::endl;
+    double x = msg->pose.pose.position.x;
+    double y = msg->pose.pose.position.y;
+    Eigen::Quaterniond q(msg->pose.pose.orientation.w,
+                         msg->pose.pose.orientation.x,
+                         msg->pose.pose.orientation.y,
+                         msg->pose.pose.orientation.z);
+    Eigen::Vector3d rot_x = q.toRotationMatrix().block(0, 0, 3, 1);
+    double yaw_angle         = atan2(rot_x(1), rot_x(0));
+    Eigen::Vector2d v(msg->twist.twist.linear.x, msg->twist.twist.linear.y);
+    double vel_angle = atan2(msg->twist.twist.linear.y, msg->twist.twist.linear.x);
+    double angle_diff = vel_angle - yaw_angle;
+    angle_diff = Mod2Pi(angle_diff);
+    if(abs(angle_diff) > 0.75 * M_PI)
+    {
+      // ROS_WARN("The car is running backward!");
+      state_ << x, y, yaw_angle, -v.norm();
+    }
+    else
+      state_ << x, y, yaw_angle, v.norm();
+    init_odom_ = true;
+    // std::cout << "odomCallbck :" << state_.transpose() << std::endl;
+    // traj_real_.push_back(
+    //     Eigen::Vector3d(msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z));
+
+    // if (traj_real_.size() > 10000) traj_real_.erase(traj_real_.begin(), traj_real_.begin() + 1000);
+    // std::cout << "odomCallback end error?" << std::endl;
+  }
+
+
+  void bsplineCallback(const plan_manage::BsplineConstPtr &msg)
+  {
+    // parse pos traj
+    Eigen::MatrixXd pos_pts(msg->pos_pts.size(), 3);
+    Eigen::VectorXd knots(msg->knots.size());
+    for (int i = 0; i < msg->knots.size(); ++i) {
+      knots(i) = msg->knots[i];
+    }
+    for (int i = 0; i < msg->pos_pts.size(); ++i) {
+      pos_pts(i, 0) = msg->pos_pts[i].x;
+      pos_pts(i, 1) = msg->pos_pts[i].y;
+      pos_pts(i, 2) = msg->pos_pts[i].z;
+    }
+
+    //这里的0.1是节点的internal，是随便给的，setKnot会将这里设置的0.1替换
+    NonUniformBspline pos_traj(pos_pts, msg->order, 0.1);
+    pos_traj.setKnot(knots);
+
+    // parse yaw traj
+    Eigen::MatrixXd yaw_pts(msg->yaw_pts.size(), 1);
+    for (int i = 0; i < msg->yaw_pts.size(); ++i) {
+      yaw_pts(i, 0) = msg->yaw_pts[i];
+    }
+    NonUniformBspline yaw_traj(yaw_pts, msg->order, msg->yaw_dt);
+
+    start_time_ = msg->start_time;
+    traj_id_ = msg->traj_id;
+
+    traj_.clear();
+    traj_.push_back(pos_traj);
+    traj_.push_back(traj_[0].getDerivative());
+    traj_.push_back(traj_[1].getDerivative());
+    traj_.push_back(yaw_traj);
+    traj_.push_back(yaw_traj.getDerivative());
+
+    traj_duration_ = traj_[0].getTimeSum();
+    // mpcPtr_->setBsplineTraj(traj_);   //在mpc的循环里面才设置轨迹
+    // double traj_duration_yaw = yaw_traj.getTimeSum();
+    //虽然控制点的节点向量不同，但是duration是相同的
+    // std::cout << "position duration: " << traj_duration_ << ", yaw duration: " << traj_duration_yaw << std::endl;
+    receive_traj_ = true;
+    init_path_set_ = false;
+
+    arrive_goal = false;//每次有新的路径进来，说明就没有到达终点
+    mpc_pause = false;
+    // ROS_WARN("Receive New Traj!!");
+    return;
+  }
+
+  //收到replan信号之后，通过更改traj_duration_结束对当前轨迹的跟踪
+  void replanCallback(std_msgs::Empty msg) 
+  {
+    /* reset duration */
+    const double time_out = 0.01;
+    ros::Time time_now = ros::Time::now();
+    double t_stop = (time_now - start_time_).toSec() + time_out;
+    traj_duration_ = min(t_stop, traj_duration_);
+  }
+  //清空内存
+  void newCallback(std_msgs::Empty msg) 
+  {
+    traj_cmd_.clear();
+    traj_real_.clear();
+  }
+
+  void pauseCallback(std_msgs::Empty msg) 
+  {
+    mpc_pause = true;
+    ROS_WARN("Now mpc pause, waiting ...");
+  }
+
+ public:
+  void onInit(void) {
+    ros::NodeHandle nh(getPrivateNodeHandle());
+    std::cout << "now init Car Mpc" << std::endl;
+    mpcPtr_ = std::make_shared<CarMpc>(nh);
+    nh.getParam("car_mpc/dt", dt_);
+    nh.getParam("car_mpc/delta_max", delta_max_);
+    nh.getParam("car_mpc/wheel_base", wheel_base_);
+    nh.getParam("car_mpc/v_max", vel_max_);
+    nh.getParam("car_mpc/k_vel", k_vel_);
+    nh.getParam("car_mpc/k_omega", k_omega_);
+    nh.getParam("car_mpc/k_p", kp_);
+    nh.getParam("car_mpc/k_d", kd_);
+
+    std::cout << "vel_max_: " << vel_max_ << ", kp_: " << kp_ << ", kd_: " << kd_ <<  std::endl;
+    vel_odom_ = 0.0;
+    // Debug    
+#ifdef DEBUG_MODE
+    {
+      dt = 0.04;
+    }
+#endif
+
+    mpcplan_timer_ = nh.createTimer(ros::Duration(0.007), &Nodelet::mpcplan_timer_callback, this);
+
+    odom_sub_ = nh.subscribe<nav_msgs::Odometry>("odometry", 10, &Nodelet::odomCallbck, this);
+    cmd_pub_ = nh.advertise<car_msgs::CarCmd>("cmd", 100);
+    cmd_ros_pub_ = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 100);
+    // replan_sub_的信号会先发布，收到之后就把traj_duration_社为当前时间+0.01s，让对当前轨迹的跟踪停下来
+    // 然后才会重新收到新的bspline，用重置一遍开始跟踪新的traj
+    bspline_sub_ = nh.subscribe<plan_manage::Bspline>("/planning/bspline",10, 
+                   &Nodelet::bsplineCallback, this, ros::TransportHints().tcpNoDelay());
+    replan_sub_  = nh.subscribe<std_msgs::Empty>("/planning/replan",10, 
+                   &Nodelet::replanCallback, this, ros::TransportHints().tcpNoDelay());
+    // new_sub_     = nh.subscribe<std_msgs::Empty>("/planning/new",10, 
+    //                &Nodelet::newCallback, this, ros::TransportHints().tcpNoDelay());   
+    mpc_pause_sub_ = nh.subscribe<std_msgs::Empty>("/car_simulator/mpc_pause",10, 
+                   &Nodelet::pauseCallback, this, ros::TransportHints().tcpNoDelay()); 
+    std::cout << "car mpc init success!-----" << std::endl;        
+  }
+};
+}  // namespace car_mpc
+
+#include <pluginlib/class_list_macros.h>
+PLUGINLIB_EXPORT_CLASS(car_mpc::Nodelet, nodelet::Nodelet);

@@ -1,0 +1,165 @@
+<launch>
+  <arg name="only2D" value="1"/>
+  <arg name="only2D_not" value="0"/>
+
+  <arg name="FilePath" value="/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/"/>
+  <arg name="use_teb" value="false"/>
+  <arg name="use_gazebo" value="false" />
+
+  <!--这个odom是仿真的-->
+  <arg name="used_odom_name" value="/car/odom"/>
+  <arg name="max_vel_" value="2.0" />
+  <arg name="max_acc_" value="1.5" />
+
+
+  <arg name="max_steering_angel" value="45.0"/>
+  <arg name="wheel_base" value="0.5"/>
+  <!-- size of map, change the size in x, y, z according to your application -->
+  <arg name="map_size_x" value="60.0"/>
+  <arg name="map_size_y" value="60.0"/>
+  <arg name="map_size_z" value=" 5.0"/>
+
+  <!-- topic of your odometry such as VIO or LIO -->
+  <!--这个UKF_odom是仿真加了噪声后的-->
+  <!-- pose_type 是sdf_map.cpp里面，订阅的是pose就设置为1，odom就设置为2 -->
+  <arg name="odom_topic" value="/car/odom" />
+  <arg name="camera_pose_topic" value="/pcl_render_node/camera_pose"/>
+  <arg name="depth_topic" if="$(arg use_gazebo)" value="/camera2/depth/image_raw" />
+  <arg name="depth_topic" unless="$(arg use_gazebo)" value="/pcl_render_node/depth" />
+  <arg name="pose_type" value="1" />
+
+  <!-- 这里是接入实物时用的: ORB-SLAM3 -->
+  <!-- <arg name="odom_topic" value="/orbslam_odom" />
+  <arg name="camera_pose_topic" value="/orbslam_pose"/>
+  <arg name="depth_topic" value="/orbslam_depth" />
+  <arg name="pose_type" value="1" /> -->
+
+  <!-- 这里是接入实物时用的: Fast-lio2 -->
+  <!-- <arg name="odom_topic" value="/Odometry" /> 
+  <arg name="camera_pose_topic" value="/orbslam_pose"/>
+  <arg name="depth_topic" value="/camera/depth/image_raw" />
+  <arg name="pose_type" value="2" /> -->
+
+  <param name="/use_sim_time" value="false" />
+  <!-- main algorithm params -->
+  <include file="$(find plan_manage)/launch/kino_algorithm.xml">
+
+    <arg name="FilePath" value="$(arg FilePath)"/>
+    <arg name="only2D" value="$(arg only2D)"/>
+    <arg name="wheel_base_" value="$(arg wheel_base)"/> 
+    <arg name="map_size_x_" value="$(arg map_size_x)"/>
+    <arg name="map_size_y_" value="$(arg map_size_y)"/>
+    <arg name="map_size_z_" value="$(arg map_size_z)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="pose_type" value="$(arg pose_type)"/>
+    <!-- camera pose: transform of camera frame in the world frame -->
+    <!-- depth topic: depth image, 640x480 by default -->
+    <!-- don't set cloud_topic if you already set these ones! -->
+    <arg name="camera_pose_topic" value="$(arg camera_pose_topic)"/>
+    <arg name="depth_topic" value="$(arg depth_topic)"/>
+
+    <!-- topic of point cloud measurement, such as from LIDAR  -->
+    <!-- don't set camera pose and depth, if you already set this one! -->
+    <arg name="cloud_topic" value="/pcl_render_node/cloud"/>
+
+    <!-- intrinsic params of the depth camera -->
+    <!-- <arg name="cx" value="430.02810168243263"/>
+    <arg name="cy" value="241.4181046879807"/>
+    <arg name="fx" value="431.7921474383181"/>
+    <arg name="fy" value="432.25718537152386"/> -->
+    <!-- <arg name="cx" value="321.04638671875"/>
+    <arg name="cy" value="243.44969177246094"/>
+    <arg name="fx" value="387.229248046875"/>
+    <arg name="fy" value="387.229248046875"/> -->
+
+    <!-- this param should consist with camera.yaml -->
+    <!-- if use gazebo, this should consist with depth_camera_info -->
+    <arg name="cx" value="320.5"/>
+    <arg name="cy" value="240.5"/>
+    <arg name="fx" value="381.4011937718128"/>
+    <arg name="fy" value="381.4011937718128"/>
+
+    <!-- maximum velocity and acceleration the drone will reach -->
+    <arg name="max_vel" value="$(arg max_vel_)" />
+    <arg name="max_acc" value="$(arg max_acc_)" />
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/> 
+    <!-- 1: use 2D Nav Goal to select goal  -->
+    <!-- 2: use global waypoints below  -->
+    <arg name="flight_type" value="1" />
+    
+    <!-- global waypoints -->
+    <!-- If flight_type is set to 2, the drone will travel these waypoints one by one -->
+    <arg name="point_num" value="2" />
+
+    <arg name="point0_x" value="19.0" />
+    <arg name="point0_y" value="0.0" />
+    <arg name="point0_z" value="1.0" />
+
+    <!-- set more waypoints if you need -->
+    <arg name="point1_x" value="-19.0" />
+    <arg name="point1_y" value="0.0" />
+    <arg name="point1_z" value="1.0" />
+
+    <arg name="point2_x" value="0.0" />
+    <arg name="point2_y" value="19.0" />
+    <arg name="point2_z" value="1.0" />
+    <arg name="use_teb" value="$(arg use_teb)" />
+  </include>
+
+  <!-- trajectory server -->
+  <node pkg="plan_manage" name="traj_server" type="traj_server" output="screen">
+    <remap from="/position_cmd" to="planning/pos_cmd"/>
+
+    <remap from="/odom_world" to="$(arg odom_topic)"/>
+    <param name="traj_server/time_forward" value="1.5" type="double"/>
+    <param name="FilePath" value="$(arg FilePath)" type="string"/>
+  </node>
+
+  <node pkg="waypoint_generator" name="waypoint_generator" type="waypoint_generator" output="screen">
+    <remap from="~odom" to="$(arg odom_topic)"/>        
+    <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~traj_start_trigger" to="/traj_start_trigger" />
+    <!-- manual-lonely-waypoint：从rviz里面选点。waypts-target-2D：QHB规划实验用的 -->
+    <!-- MODE -->
+    <param name="waypoint_type" value="manual-lonely-waypoint"/> 
+    <!-- <param name="waypoint_type" value="waypts-target-2D"/>  -->
+    <rosparam file="$(find plan_manage)/config/waypts_2d.yaml"/>  
+  </node>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="lidar_link" args="0 0 0 0 0 0 1 /world /camera_init"/>
+
+
+  <!-- car_mpc -->
+  <include file="$(find car_mpc)/launch/simulation.launch">
+    <arg name="wheel_base_" value="$(arg wheel_base)"/>  
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/>  
+    <arg name="max_vel" value="$(arg max_vel_)"/>
+    <arg name="max_acc" value="$(arg max_acc_)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+  </include>
+
+  <!-- use simulator -->
+  <include file="$(find plan_manage)/launch/simulator.xml">
+    <arg name="FilePath" value="$(arg FilePath)"/>
+    <arg name="only2D" value="$(arg only2D)"/>
+    <arg name="only2D_not" value="$(arg only2D_not)"/>
+    <arg name="used_odom_name" value="$(arg used_odom_name)"/>
+    <arg name="wheel_base_" value="$(arg wheel_base)"/> 
+    <arg name="max_vel" value="$(arg max_vel_)" />
+    <arg name="max_acc" value="$(arg max_acc_)" />
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/> 
+    <arg name="map_size_x_" value="$(arg map_size_x)"/>
+    <arg name="map_size_y_" value="$(arg map_size_y)"/>
+    <arg name="map_size_z_" value="$(arg map_size_z)"/>
+    <arg name="c_num" value="250"/>
+    <arg name="p_num" value="250"/>
+    <arg name="w_num" value="0"/>
+    <arg name="u_w_num" value="0"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)" />
+    <arg name="camera_pose_topic" value="$(arg camera_pose_topic)"/>
+    <arg name="depth_topic" value="$(arg depth_topic)"/>
+    <!-- MODE -->
+    <arg name="use_teb" value="$(arg use_teb)" />
+    <arg name="use_gazebo" value="$(arg use_gazebo)" />
+  </include>
+
+</launch>

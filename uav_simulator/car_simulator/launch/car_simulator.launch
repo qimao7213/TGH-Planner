@@ -1,0 +1,7 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="car_simulator" args="load car_simulator/Nodelet manager" output="screen">
+    <rosparam file="$(find car_simulator)/config/car_simulator.yaml"/>
+    <remap from="~odom" to="odom"/>
+    <remap from="~car_cmd" to="car_cmd"/>
+  </node>
+</launch>

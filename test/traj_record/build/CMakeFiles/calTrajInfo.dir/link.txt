@@ -1,0 +1,1 @@
+/usr/bin/c++  -g -O0 -Wall -g CMakeFiles/calTrajInfo.dir/src/calTrajInfo.cpp.o -o ../calTrajInfo  /usr/lib/x86_64-linux-gnu/libpython3.8.so 

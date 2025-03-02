@@ -1,0 +1,34 @@
+<launch>
+  <param name="/use_sim_time" value="true" />
+  <!-- 15, 15, 0; // density01seed0_no_ground -->
+  <!-- 20, 0, 0.5; // bugtrap10 -->
+
+  <!-- icra0: 27, 12 -->
+  <!-- zigzag7: 20, 22 -->
+  <!-- bugtrap10: 20, 0 -->
+  <!-- perception: -3, -3 -->
+  <arg name="map_offset_x_" default="20"/>
+  <arg name="map_offset_y_" default="22"/> 
+  <arg name="map_offset_z_" default="0.5"/>
+  <!-- World 文件路径 -->
+  <arg name="world_file" default="/home/bhrqhb/catkin_ws_faster_uav/src/acl-gazebo/acl_sim/worlds/zigzag7.world" />
+
+  <!-- 启动 Gazebo -->
+  <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-s libgazebo_ros_factory.so -world $(arg world_file) -gui false" output="screen"/>
+
+  <!-- 加载 Gazebo 客户端 -->
+  <!-- <node name="gazebo_client" pkg="gazebo_ros" type="gzclient" output="screen"/> -->
+
+  <!-- 加载 URDF 模型 -->
+  <param name="robot_description" textfile="$(find gazebo_simulator)/urdf/box.urdf" />
+  
+  <!-- 使用 robot_description 加载模型到 Gazebo -->
+  <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model simple_box" output="screen" />
+
+  <!-- 启动自定义节点 -->
+  <node name="gazebo_simulator" pkg="gazebo_simulator" type="set_robot_pose" output="screen" >
+    <param name="map_offset_x" value="$(arg map_offset_x_)" type="double"/>
+    <param name="map_offset_y" value="$(arg map_offset_y_)" type="double"/>
+    <param name="map_offset_z" value="$(arg map_offset_z_)" type="double"/>
+  </node>
+</launch>

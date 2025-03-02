@@ -1,0 +1,24 @@
+<launch>
+  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find plan_manage)/config/topo_test.rviz" />
+  <node pkg="map_server" type="map_server" name="map_server" args="$(find plan_manage)/maps/map.yaml">
+    <param name="publish_frequency" value="20.0" />
+  </node>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="for_rviz" args="0 0 0 0 0 0 1 /world /map"/>
+
+  <!-- <node pkg="plan_manage" type="test_topo_rpm" name="test_topo_rpm" output="screen">
+    <param name="topo_prm/sample_inflate_x" value="2.0" type="double"/>
+    <param name="topo_prm/sample_inflate_y" value="2.0" type="double"/>
+    <param name="topo_prm/sample_inflate_z" value="0.1" type="double"/>
+    <param name="topo_prm/clearance" value="0.3" type="double"/>
+    <param name="topo_prm/clearance_line" value="0.3" type="double"/>
+    <param name="topo_prm/max_sample_time" value="0.002" type="double"/>
+    <param name="topo_prm/max_sample_num" value="1000" type="int"/>
+    <param name="topo_prm/max_raw_path" value="300" type="int"/>
+    <param name="topo_prm/max_raw_path2" value="25" type="int"/>
+    <param name="topo_prm/short_cut_num" value="1" type="int"/>
+    <param name="topo_prm/reserve_num" value="6" type="int"/>
+    <param name="topo_prm/ratio_to_short" value="5.5" type="double"/>
+    <param name="topo_prm/parallel_shortcut" value="true" type="bool"/>
+  </node> -->
+
+</launch>

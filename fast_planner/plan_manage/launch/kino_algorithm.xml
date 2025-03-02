@@ -1,0 +1,246 @@
+<launch>
+  <arg name="only2D"/>
+  <arg name="wheel_base_"/>  
+  <arg name="max_steering_angel_"/>  
+  <arg name="map_size_x_"/>
+  <arg name="map_size_y_"/>
+  <arg name="map_size_z_"/>
+
+  <arg name="odometry_topic"/>
+  <arg name="camera_pose_topic"/>
+  <arg name="depth_topic"/>
+  <arg name="cloud_topic"/>
+
+  <arg name="cx"/>
+  <arg name="cy"/>
+  <arg name="fx"/>
+  <arg name="fy"/>
+
+  <arg name="max_vel"/>
+  <arg name="max_acc"/>
+
+  <arg name="point_num"/>
+  <arg name="point0_x"/>
+  <arg name="point0_y"/>
+  <arg name="point0_z"/>
+  <arg name="point1_x"/>
+  <arg name="point1_y"/>
+  <arg name="point1_z"/>
+  <arg name="point2_x"/>
+  <arg name="point2_y"/>
+  <arg name="point2_z"/>
+
+  <arg name="flight_type"/>
+  <arg name="pose_type"/>
+  <arg name="clearance_all" default="0.2"/>
+  <arg name="use_teb"/>
+  <arg name="FilePath"/>
+  <!-- main node -->
+  <node pkg="plan_manage" name="fast_planner_node" type="fast_planner_node" output="screen">
+    <remap from = "/odom_world" to="$(arg odometry_topic)"/>
+    <remap from = "/sdf_map/odom" to="$(arg odometry_topic)"/>
+    <remap from = "/sdf_map/cloud" to="$(arg cloud_topic)"/>
+    <remap from = "/sdf_map/pose"   to = "$(arg camera_pose_topic)"/> 
+    <remap from = "/sdf_map/depth" to = "$(arg depth_topic)"/>
+
+    <!-- replanning method -->
+    <param name="planner_node/planner" value="1" type="int"/>
+
+    <!-- planning fsm -->
+    <param name="fsm/flight_type" value="$(arg flight_type)" type="int"/>
+    <param name="fsm/thresh_replan" value="2.0" type="double"/> 
+    <param name="fsm/thresh_no_replan" value="2.0" type="double"/>
+
+    <param name="fsm/waypoint_num" value="$(arg point_num)" type="int"/>
+    <param name="fsm/waypoint0_x" value="$(arg point0_x)" type="double"/>
+    <param name="fsm/waypoint0_y" value="$(arg point0_y)" type="double"/>
+    <param name="fsm/waypoint0_z" value="$(arg point0_z)" type="double"/>
+    <param name="fsm/waypoint1_x" value="$(arg point1_x)" type="double"/>
+    <param name="fsm/waypoint1_y" value="$(arg point1_y)" type="double"/>
+    <param name="fsm/waypoint1_z" value="$(arg point1_z)" type="double"/>
+    <param name="fsm/waypoint2_x" value="$(arg point2_x)" type="double"/>
+    <param name="fsm/waypoint2_y" value="$(arg point2_y)" type="double"/>
+    <param name="fsm/waypoint2_z" value="$(arg point2_z)" type="double"/>
+    <param name="fsm/use_teb" value="$(arg use_teb)"/>
+
+    <param name="sdf_map/resolution"      value="0.1" /> 
+    <param name="sdf_map/map_size_x"   value="$(arg map_size_x_)" /> 
+    <param name="sdf_map/map_size_y"   value="$(arg map_size_y_)" /> 
+    <param name="sdf_map/map_size_z"   value="$(arg map_size_z_)" /> 
+    <param name="sdf_map/local_update_range_x"  value="5.5" /> 
+    <param name="sdf_map/local_update_range_y"  value="5.5" /> 
+    <param name="sdf_map/local_update_range_z"  value="4.5" /> 
+    <param name="sdf_map/obstacles_inflation"     value="0.199" /> 
+    <param name="sdf_map/local_bound_inflate"    value="0.0"/>
+    <param name="sdf_map/local_map_margin" value="10"/>
+    <param name="sdf_map/ground_height"        value="-0.3"/>
+
+    <!-- map 2D -->
+    <param name="sdf_map/need_map_2D"   value="true"/>
+    <param name="sdf_map/height_max_2D"   value="2.0"/>
+
+    <!-- camera parameter -->
+    <param name="sdf_map/cx" value="$(arg cx)"/>
+    <param name="sdf_map/cy" value="$(arg cy)"/>
+    <param name="sdf_map/fx" value="$(arg fx)"/>
+    <param name="sdf_map/fy" value="$(arg fy)"/>
+    <!-- depth filter -->
+    <param name="sdf_map/use_depth_filter" value="true"/>
+    <param name="sdf_map/depth_filter_tolerance" value="0.15"/>
+    <param name="sdf_map/depth_filter_maxdist"   value="7.1"/>
+    <param name="sdf_map/depth_filter_mindist"   value="0.1"/>
+    <param name="sdf_map/depth_filter_margin"    value="2"/>
+    <param name="sdf_map/k_depth_scaling_factor" value="1000.0"/>
+    <param name="sdf_map/skip_pixel" value="2"/>
+    <!-- local fusion -->
+    <param name="sdf_map/p_hit"  value="0.9"/>
+    <param name="sdf_map/p_miss" value="0.35"/>
+    <param name="sdf_map/p_min"  value="0.12"/>
+    <param name="sdf_map/p_max"  value="0.90"/>
+    <param name="sdf_map/p_occ"  value="0.80"/>
+    <param name="sdf_map/min_ray_length" value="0.2"/>
+    <param name="sdf_map/max_ray_length" value="7"/>
+
+    <param name="sdf_map/esdf_slice_height" value="0.3"/>
+    <param name="sdf_map/visualization_truncate_height"   value="2.49"/>
+    <param name="sdf_map/virtual_ceil_height"   value="2.5"/>
+    <param name="sdf_map/show_occ_time"  value="false"/>
+    <param name="sdf_map/show_esdf_time" value="false"/>
+    <param name="sdf_map/pose_type"     value="$(arg pose_type)" type="int"/>  
+    <param name="sdf_map/frame_id"      value="world"/>
+
+  <!-- planner manager -->
+    <param name="manager/FilePath" value="$(arg FilePath)" type="string"/>
+    <param name="manager/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="manager/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="manager/max_jerk" value="4" type="double"/>
+    <param name="manager/dynamic_environment" value="0" type="int"/>
+    <param name="manager/local_segment_length" value="6.0" type="double"/>
+    <param name="manager/clearance_threshold" value="0.2" type="double"/>
+    <param name="manager/control_points_distance" value="0.3" type="double"/>
+
+    <param name="manager/use_geometric_path" value="false" type="bool"/>
+    <param name="manager/use_kinodynamic_path" value="true" type="bool"/>
+    <param name="manager/use_topo_path" value="true" type="bool"/>
+    <param name="manager/use_optimization" value="true" type="bool"/>
+    <param name="manager/only2D" value="$(arg only2D)" type="bool"/>
+    <param name="manager/save_traj_info" value="false" type="bool"/>
+    
+  <!-- kinodynamic path searching -->
+  <!-- 为什么search/horizon 只有7m？ -->
+    <param name="search/max_tau" value="0.6" type="double"/>
+    <param name="search/init_max_tau" value="0.8" type="double"/>
+    <param name="search/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="search/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="search/w_time" value="10.0" type="double"/>
+    <param name="search/horizon" value="7.0" type="double"/>
+    <param name="search/lambda_heu" value="5.0" type="double"/>
+    <param name="search/resolution_astar" value="0.1" type="double"/>
+    <param name="search/time_resolution" value="0.8" type="double"/>
+    <param name="search/margin" value="0.2" type="double"/>
+    <param name="search/allocate_num" value="100000" type="int"/>
+    <param name="search/check_num" value="5" type="int"/>
+
+    <!-- 2D kinodynamic path searching -->
+    <!-- icra3，非常稠密，所以参数要调。horizon: 5.0, obs_dis:0.2  -->
+    <param name="search_2D/max_tau" value="0.4" type="double"/>
+    <param name="search_2D/init_max_tau" value="0.4" type="double"/>
+    <param name="search_2D/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="search_2D/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="search_2D/w_time" value="10.0" type="double"/>
+    <param name="search_2D/horizon" value="7.0" type="double"/>
+    <param name="search_2D/lambda_heu" value="1.2" type="double"/>
+    <param name="search_2D/resolution_astar" value="0.1" type="double"/>
+    <param name="search_2D/time_resolution" value="0.8" type="double"/>
+    <param name="search_2D/margin" value="0.2" type="double"/>
+    <param name="search_2D/allocate_num" value="100000" type="int"/>
+    <param name="search_2D/check_num" value="5" type="int"/>
+    <param name="search_2D/obs_dis" value="$(arg clearance_all)" type="double"/>
+    
+
+    <param name="search_2D/steering_angle" value="$(arg max_steering_angel_)" type="double"/>
+    <param name="search_2D/steering_angle_discrete_num" value="5" type="int"/>
+    <param name="search_2D/vel_discrete_num" value="1" type="int"/>
+    <param name="search_2D/wheel_base" value="$(arg wheel_base_)" type="double"/>
+    <param name="search_2D/steering_penalty" value="1.1" type="double"/>
+    <param name="search_2D/steering_change_penalty" value="1.2" type="double"/>
+    <param name="search_2D/reversing_penalty" value="1.3" type="double"/>
+    <param name="search_2D/vehicle_length" value="0.3" type="double"/>
+    <param name="search_2D/vehicle_width" value="0.3" type="double"/>
+    <param name="search_2D/vehicle_rear_dis" value="0.5" type="double"/>
+    <param name="search_2D/shot_distance" value="6.0" type="double"/>
+    <param name="search_2D/reverse_enable" value="0" type="bool"/>
+    <param name="search_2D/show_search_tree" value="1" type="bool"/>
+    <param name="search_2D/use_JPS" value="1" type="bool"/>
+    <!-- JPS -->
+    <param name="JPS/resolution" value="0.1" type="double"/>
+    <param name="JPS/lambda_heu" value="1.0" type="double"/>
+    <param name="JPS/allocate_num" value="10000" type="int"/>
+
+    <!-- A star 2D -->
+    <param name="astar_2D/lambda_heu" value="1.2" type="double"/>
+    <param name="astar_2D/margin" value="$(arg clearance_all)" type="double"/>
+    <param name="astar_2D/allocate_num" value="1000" type="int"/>
+
+  <!-- topology path finding -->
+    <param name="topo_prm/FilePath" value="$(arg FilePath)" type="string"/>
+    <param name="topo_prm/sample_inflate_x" value="6.0" type="double"/>
+    <param name="topo_prm/sample_inflate_y" value="6.0" type="double"/>
+    <param name="topo_prm/sample_inflate_z" value="0.1" type="double"/>
+    <param name="topo_prm/clearance" value="$(arg clearance_all)" type="double"/>
+    <param name="topo_prm/clearance_line" value="$(arg clearance_all)" type="double"/>
+    <param name="topo_prm/max_sample_time" value="0.002" type="double"/>
+    <param name="topo_prm/max_sample_num" value="1000" type="int"/>
+    <param name="topo_prm/max_raw_path" value="300" type="int"/>
+    <param name="topo_prm/max_raw_path2" value="25" type="int"/>
+    <param name="topo_prm/short_cut_num" value="1" type="int"/>
+    <param name="topo_prm/reserve_num" value="6" type="int"/>
+    <param name="topo_prm/ratio_to_short" value="15" type="double"/>
+    <param name="topo_prm/parallel_shortcut" value="true" type="bool"/>
+
+  <!-- trajectory optimization. lambda1->smooth, lambda2->dis -->
+  <!-- icra3，非常稠密，所以参数要调。dist0: 0.2, phi_min:0.15  -->
+    <param name="optimization/lambda1" value="5.0" type="double"/>
+    <param name="optimization/lambda2" value="8.0" type="double"/>
+    <param name="optimization/lambda3" value="0.005" type="double"/>
+    <param name="optimization/lambda4" value="0.01" type="double"/>
+    <param name="optimization/lambda6" value="0.09" type="double"/>
+    <param name="optimization/lambda7" value="500.0" type="double"/>
+    <param name="optimization/lambda8" value="0.05" type="double"/>
+    <param name="optimization/lambda9" value="0.5" type="double"/>
+    <param name="optimization/lambda10" value="5" type="double"/>
+    <param name="optimization/w_ctrl_in_perception" value="0.05" type="double"/>
+    <param name="optimization/dist0" value="0.3" type="double"/>
+    <param name="optimization/max_vel" value="$(arg max_vel)" type="double"/>
+    <param name="optimization/max_acc" value="$(arg max_acc)" type="double"/>
+    <param name="optimization/dlmin" value="0.05" type="double"/>
+    <param name="optimization/wnl" value="0.4" type="double"/>
+    <param name="optimization/phi_min" value="0.25" type="double"/><!--这个值应该要比dist_0小才行-->
+
+    <param name="optimization/algorithm1" value="15" type="int"/>
+    <param name="optimization/algorithm2" value="11" type="int"/>
+
+    <param name="optimization/max_iteration_num1" value="5" type="int"/>
+    <param name="optimization/max_iteration_num2" value="300" type="int"/>
+    <param name="optimization/max_iteration_num3" value="200" type="int"/>
+    <param name="optimization/max_iteration_num4" value="200" type="int"/>
+    <param name="optimization/max_iteration_num5" value="300" type="int"/>
+
+    <param name="optimization/max_iteration_time1" value="0.0001" type="double"/>
+    <param name="optimization/max_iteration_time2" value="0.005" type="double"/>
+    <param name="optimization/max_iteration_time3" value="0.003" type="double"/>
+    <param name="optimization/max_iteration_time4" value="0.003" type="double"/>
+
+    <param name="optimization/order" value="3" type="int"/>
+
+    <param name="bspline/limit_vel" value="$(arg max_vel)" type="double"/>
+    <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
+    <param name="bspline/limit_ratio" value="1.1" type="double"/>
+
+    <param name="bspline/limit_vel" value="$(arg max_vel)" type="double"/>
+    <param name="bspline/limit_acc" value="$(arg max_acc)" type="double"/>
+    <param name="bspline/limit_ratio" value="1.1" type="double"/>
+
+  </node>
+
+</launch>

@@ -1,0 +1,24 @@
+@article{zhou2019robust,
+  title={Robust and efficient quadrotor trajectory generation for fast autonomous flight},
+  author={Zhou, Boyu and Gao, Fei and Wang, Luqi and Liu, Chuhao and Shen, Shaojie},
+  journal={IEEE Robotics and Automation Letters},
+  volume={4},
+  number={4},
+  pages={3529--3536},
+  year={2019},
+  publisher={IEEE}
+}
+
+@article{zhou2019robust,
+  title={Robust Real-time UAV Replanning Using Guided Gradient-based Optimization and Topological Paths},
+  author={Zhou, Boyu and Gao, Fei and Pan, Jie and Shen, Shaojie},
+  journal={arXiv preprint arXiv:1912.12644},
+  year={2019}
+}
+
+@article{zhou2020raptor,
+  title={RAPTOR: Robust and Perception-aware Trajectory Replanning for Quadrotor Fast Flight},
+  author={Zhou, Boyu and Pan, Jie and Gao, Fei and Shen, Shaojie},
+  journal={arXiv preprint arXiv:2007.03465},
+  year={2020}
+}
