@@ -1,5 +1,7 @@
 论文：TGH-Planner: Topology-Guided Hierarchical Planner for Nonholonomic Robots in Unknown and Complex Environments （投稿IEEE T-Mech）
 
+视频：[bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)
+
 论文链接后续更新
 
 这个代码是根据FAST-Planner改的。仓库的内容后续再慢慢弄。
