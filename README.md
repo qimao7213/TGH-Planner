@@ -1,28 +1,55 @@
-论文：TGH-Planner: Topology-Guided Hierarchical Planner for Nonholonomic Robots in Unknown and Complex Environments （投稿IEEE T-Mech）
+# TGH-Planner
+Topology-Guided Hierarchical Planner for Nonholonomic Robots in Unknown and Complex Environments (Submitted to IEEE T-Mech). 
 
-视频：[bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)
+Link: Come Soon.
 
-论文链接后续更新
+Video：[bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)
 
-这个代码是根据FAST-Planner改的。仓库的内容后续再慢慢弄。
+**Contributions:**
+- Propose a more effiecient UVD (Uniform Visibility Deformation) to accelerate HEC (Homotopy Equivalence Check).
+- Design a topological path set to store historical paths, which not only provides consistent and stable guiding trajectories but also significantly reduces re-planning time
+- Consider nonholonomic dynamics and unkown obstacle risks in local trajectory optimization to ensure safety.
 
-主要改进的地方：
-（1）提升了UVD的效率；
-（2）构建了一个拓扑路径容器，可以在全局引导的时候利用历史规划信息；
-（3）优化时考虑了非全向机器人
+Please kindly star :star: this project if it helps you. We take great efforts to develope and maintain it :grin::grin:.
 
-依赖：Ubuntn20.04,ROS1,OpenCV,xterm,CUDA(没有也可以，具体参考FAST-Planner)
+TGH-Planner is based on the the excellent work of [FAST-Planner](https://github.com/HKUST-Aerial-Robotics/Fast-Planner).
 
-Step1: 克隆这个库，然后把里面打包好的3rd.zip依赖文件在其他地方解压，cmake .., make , sudo make install；
+## 1. Build and Start
+**Dependencies:** Ubuntn20.04, ROS1, OpenCV, xterm, CUDA (Optional, see FAST-Planner)
+- Step1:
+```
+  cd ${YOUR_WORKSPACE_PATH}/src
+  git clone https://github.com/qimao7213/TGH-Planner.git
+```
+- Step2:
+Unzip the **3rd.zip** to a different path of your choice, and run the following codes for each folder:
+```
+  mkdir build && cd build && cmake ..
+  make
+  sudo make install
+```
+- Step3:
+Change the *nlopt path* in **TGH-Planner/fast_planner/bspline_opt/CMakeLists.txt Line 19** to yours. 
+Change the *FilePath* in **TGH-Planner/fast_planner/plan_manage/kino_replan.launch Line 5** to yours, if you want to save trajectory information and odometry information.
 
-Step2: 把TGH-Planner/fast_planner/bspline_opt/CMakeLists.txt里面19行的nlopt路径改为自己的；
+- Step4:
+```
+  catkin_make
+```
+- Step5:
+Open three terminals and run the following commands respectively:
+```
+  roscore
+```
+```
+  roslaunch plan_manage rviz.launch
+```
+```
+  roslaunch plan_manage kino_replan.launch
+```
+Then you can select a goal in Rviz and the robot will move.
 
-Step3：catkin_make编译；
+## 2. 
+I will continue to improve this repository and enhance the code in the future.
 
-Step4: 打开两个终端，分别运行： roslaunch plan_manage rviz.launch 和 roslaunch plan_mange kino_replan.launch
-
-我自己测试过，应该是没有问题的。
-
-很多地方后续再完善吧。
-
-
+I will introduce how to deploy TGH-Planner onto a actual robot.
