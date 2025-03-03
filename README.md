@@ -5,6 +5,10 @@ Link: Come Soon.
 
 Video：[bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)
 
+<p align="center">
+    <img src="files/realworld_experiment.png" alt="Realworld Experiment" width="50%">
+</p>
+
 **Contributions:**
 - Propose a more effiecient UVD (Uniform Visibility Deformation) to accelerate HEC (Homotopy Equivalence Check).
 - Design a topological path set to store historical paths, which not only provides consistent and stable guiding trajectories but also significantly reduces re-planning time
