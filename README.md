@@ -1,7 +1,7 @@
 # TGH-Planner
 Topology-Guided Hierarchical Planner for Nonholonomic Robots in Unknown and Complex Environments (Submitted to IEEE T-Mech). 
 
-Link: Come Soon.
+PDF Link: [TechRxiv](https://www.techrxiv.org/users/897374/articles/1274757-tgh-planner-topology-guided-hierarchical-planner-for-nonholonomic-robots-in-unknown-and-complex-environments?commit=1f84764f4edc345d91a809fd2cc0ea9d6597c29c).
 
 Video：[bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)
 
