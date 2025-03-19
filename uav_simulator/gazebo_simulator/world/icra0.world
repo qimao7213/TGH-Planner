@@ -28649,7 +28649,7 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <plugin name='collision_map_creator' filename='libcollision_map_creator.so'/>
+    <plugin name="collision_map_creator" filename="libcollision_map_creator.so"/>
     <model name='forest_clone_84_0_clone'>
       <pose>27.6484 0.41947 0.00017 0 -0 0</pose>
       <static>1</static>
@@ -29490,6 +29490,6 @@
         <kinematic>0</kinematic>
       </link>
     </model>
-    <plugin name='collision_map_creator' filename='libcollision_map_creator.so'/>
+    <plugin name="collision_map_creator" filename="libcollision_map_creator.so"/>
   </world>
 </sdf>
