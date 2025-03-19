@@ -31,7 +31,7 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <ros/ros.h>
-#include <glog/logging.h>
+// #include <glog/logging.h>
 
 bool save_info_ = 0;
 
@@ -197,8 +197,9 @@ void FastPlannerManager::initPlanModules(ros::NodeHandle& nh) {
   nh.param("manager/only2D", only2D_, false);
   nh.param("manager/save_traj_info", save_info_, false);
   std::string file_path;
-  nh.param("manager/FilePath", file_path);
-  src_file = file_path;
+  std::string default_path = "ChangeToYourPath";
+  nh.param("manager/FilePath", file_path, default_path);
+  src_file = file_path + "test/data/";
   local_data_.traj_id_ = 0;
   sdf_map_.reset(new SDFMap);
   sdf_map_->initMap(nh);
@@ -249,7 +250,7 @@ void FastPlannerManager::initPlanModules(ros::NodeHandle& nh) {
   record_file_.open(file_path + "test/traj_record/data/planning_time_cost.txt", std::ios::out);
   if(!record_file_.is_open())
   {
-      ROS_ERROR("Unable to open file to save traj info!");
+      ROS_ERROR_STREAM("Unable to open file to save traj info! at: " << file_path + "test/traj_record/data/planning_time_cost.txt");
   }
 
 }

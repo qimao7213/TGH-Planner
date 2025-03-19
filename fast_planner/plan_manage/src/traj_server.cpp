@@ -364,7 +364,8 @@ int main(int argc, char** argv) {
   ros::Subscriber new_sub = node.subscribe("planning/new", 10, newCallback);
   ros::Subscriber odom_sub = node.subscribe("/odom_world", 50, odomCallbck);
   std::string file_path;
-  nh.param("FilePath", file_path);
+  std::string default_path = "ChangeToYourPath";
+  nh.param("FilePath", file_path, default_path);
 
   cmd_vis_pub = node.advertise<visualization_msgs::Marker>("planning/position_cmd_vis", 10);
   pos_cmd_pub = node.advertise<quadrotor_msgs::PositionCommand>("/position_cmd", 50);
@@ -379,7 +380,7 @@ int main(int argc, char** argv) {
   traj_real_file_.open(traj_real_file_path.c_str(), std::ios::out);
   if(!traj_cmd_file_.is_open() || !traj_real_file_.is_open())
   {
-    ROS_ERROR("Unable to open file to save traj info!");
+    ROS_ERROR_STREAM("Unable to open file to save traj info! at: " << traj_real_file_path);
   }
 
 

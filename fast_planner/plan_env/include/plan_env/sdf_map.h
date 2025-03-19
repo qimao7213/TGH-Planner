@@ -189,7 +189,7 @@ struct MappingData {
   bool esdf_need_update_;//更新Occupancy之后，就需要更新esdf；更新esdf后，就变为false
   bool has_first_depth_;
   bool has_odom_, has_cloud_;
-
+  bool sub_cloudpoint_ = false;
   // depth image projected point cloud
 
   vector<Eigen::Vector3d> proj_points_; //深度图里，可以用来更新占据栅格地图的点云。先分配了固定大小的，具体有多少个点根据proj_points_cnt来确定

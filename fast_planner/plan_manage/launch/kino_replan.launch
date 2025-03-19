@@ -2,9 +2,9 @@
   <arg name="only2D" value="1"/>
   <arg name="only2D_not" value="0"/>
 
-  <arg name="FilePath" value="/home/bit/catkin_ws_TGH_planner/src/TGH-planner/"/>
+  <arg name="FilePath" value="/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/"/>
   <arg name="use_teb" value="false"/>
-  <arg name="use_gazebo" value="false" />
+  <arg name="use_gazebo" value="true" />
 
   <!--这个odom是仿真的-->
   <arg name="used_odom_name" value="/car/odom"/>

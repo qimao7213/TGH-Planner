@@ -492,13 +492,13 @@ void KinodynamicAstar2D::setParam(ros::NodeHandle& nh)
   expand_time_ = nh.param("search_2D/expand_time", 0.1);
   show_search_tree_ = nh.param("search_2D/show_search_tree", true);
   reverse_enable_ = nh.param("search_2D/reverse_enable", false);
-  useJPS_ = nh.param("search_2D/use_JPS", false);
+  useJPS_ = nh.param("search_2D/use_JPS", false);   // we do not it now.
   {
     jps_path_finder_.reset(new JumpPointSearch());
     jps_path_finder_->setParam(nh);
     jps_path_finder_->setEnvironment(edt_environment_);
     jps_path_finder_->init();   
-    ROS_WARN("use JPS for H! %d", useJPS_);
+    // ROS_WARN("use JPS for H! %d", useJPS_);
     useJPS_ = false;
   }
 }

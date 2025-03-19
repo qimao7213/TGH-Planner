@@ -74,7 +74,7 @@
     <param name="sdf_map/local_bound_inflate"    value="0.0"/>
     <param name="sdf_map/local_map_margin" value="10"/>
     <param name="sdf_map/ground_height"        value="-0.3"/>
-
+    <!-- <param name="sdf_map/camera_height"        value="0.5"/> -->
     <!-- map 2D -->
     <param name="sdf_map/need_map_2D"   value="true"/>
     <param name="sdf_map/height_max_2D"   value="2.0"/>

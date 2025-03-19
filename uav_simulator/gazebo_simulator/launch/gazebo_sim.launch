@@ -7,17 +7,17 @@
   <!-- zigzag7: 20, 22 -->
   <!-- bugtrap10: 20, 0 -->
   <!-- perception: -3, -3 -->
-  <arg name="map_offset_x_" default="20"/>
-  <arg name="map_offset_y_" default="22"/> 
+  <arg name="map_offset_x_" default="27"/>
+  <arg name="map_offset_y_" default="12"/> 
   <arg name="map_offset_z_" default="0.5"/>
   <!-- World 文件路径 -->
-  <arg name="world_file" default="/home/bhrqhb/catkin_ws_faster_uav/src/acl-gazebo/acl_sim/worlds/zigzag7.world" />
+  <arg name="world_file" default="/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/uav_simulator/gazebo_simulator/world/icra0.world" />
 
   <!-- 启动 Gazebo -->
   <node name="gazebo" pkg="gazebo_ros" type="gzserver" args="-s libgazebo_ros_factory.so -world $(arg world_file) -gui false" output="screen"/>
-
-  <!-- 加载 Gazebo 客户端 -->
-  <!-- <node name="gazebo_client" pkg="gazebo_ros" type="gzclient" output="screen"/> -->
+  
+  <!-- If you want to open gazebo gui -->
+  <node name="gazebo_gui" pkg="gazebo_ros" type="gzclient" args="" output="screen"/>
 
   <!-- 加载 URDF 模型 -->
   <param name="robot_description" textfile="$(find gazebo_simulator)/urdf/box.urdf" />

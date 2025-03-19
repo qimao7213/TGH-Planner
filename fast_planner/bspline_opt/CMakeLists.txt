@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   bspline
 )
 
-set (NLOPT_DIR "/home/bit/catkin_ws_TGH_planner/3rd/qhb/qhb/nlopt-2.7.1/")
+set (NLOPT_DIR "/home/bhrqhb/ThirdLibrary/nlopt-2.7.1/")
 find_package(NLopt REQUIRED)
 set(NLopt_INCLUDE_DIRS ${NLOPT_INCLUDE_DIR})
 set(CMAKE_PREFIX_PATH "/usr/local/lib/cmake/nlopt")

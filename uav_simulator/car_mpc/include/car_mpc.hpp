@@ -14,7 +14,7 @@
 #include "visualization_msgs/Marker.h"
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
-#include <glog/logging.h>
+// #include <glog/logging.h>
 namespace car_mpc {
 
 static constexpr int n = 4;  // state [x y phi v]，状态的维度
@@ -569,13 +569,13 @@ class CarMpc {
     traj_pub_.publish(msg);
 
     if(!if_printf_) return;
-    LOG(INFO) << "---------------" << std::endl;
+    // LOG(INFO) << "---------------" << std::endl;
     for (int i = 0; i < N_; ++i)
     {
       std::ostringstream oss;
       oss << "idx: " << i << ", (" << refState_[i].transpose() << "), "
           << ", (" << predictState_[i].transpose() << "). ";
-      LOG(INFO) << oss.str() << std::endl;
+      // LOG(INFO) << oss.str() << std::endl;
     }
     // std_msgs::Float64MultiArray msg;
     // msg.data.push_back();

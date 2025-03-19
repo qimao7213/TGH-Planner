@@ -77,7 +77,7 @@
       <remap from="~cmd"  to="$(arg car_cmd)"/>
     </node> -->
     <param name="robot_description" textfile="$(find car_simulator)/car_model/default.urdf"/>
-    <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
+    <!-- <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/> -->
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
 
     <node pkg="nodelet" type="nodelet" name="car_simulator" args="standalone car_simulator/Nodelet" output="screen">
@@ -162,7 +162,7 @@
 
   <node pkg="local_sensing_node" type="pcl_render_node" name="pcl_render_node" output="screen">
         <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" />
-        <param name="sensing_horizon"  value="10.0" />
+        <param name="sensing_horizon"  value="7.0" />
         <param name="sensing_rate"     value="30.0"/>
         <param name="estimation_rate"  value="30.0"/>
         <param name="use_gazebo" value="$(arg use_gazebo)"/>

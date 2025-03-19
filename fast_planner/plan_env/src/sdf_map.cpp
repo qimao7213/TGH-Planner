@@ -1245,7 +1245,7 @@ void SDFMap::updateOccupancyCallback(const ros::TimerEvent& /*event*/) {
   ros::Time t1, t2;
   t1 = ros::Time::now();
 
-  projectDepthImage();
+  if (!md_.sub_cloudpoint_) projectDepthImage();
   raycastProcess();
 
   if (md_.local_updated_) clearAndInflateLocalMap();
@@ -1333,7 +1333,7 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img) {
   pcl::fromROSMsg(*img, latest_cloud);
 
   md_.has_cloud_ = true;
-
+  md_.proj_points_cnt = 0;
   if (!md_.has_odom_) {
     // std::cout << "no odom!" << std::endl;
     return;
@@ -1343,8 +1343,8 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img) {
 
   if (isnan(md_.camera_pos_(0)) || isnan(md_.camera_pos_(1)) || isnan(md_.camera_pos_(2))) return;
 
-  this->resetBuffer(md_.camera_pos_ - mp_.local_update_range_,
-                    md_.camera_pos_ + mp_.local_update_range_);
+  // this->resetBuffer(md_.camera_pos_ - mp_.local_update_range_,
+  //                   md_.camera_pos_ + mp_.local_update_range_);
 
   pcl::PointXYZ pt;
   Eigen::Vector3d p3d, p3d_inf;
@@ -1370,54 +1370,58 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img) {
     Eigen::Vector3d devi = p3d - md_.camera_pos_;
     Eigen::Vector3i inf_pt;
 
-    if (fabs(devi(0)) < mp_.local_update_range_(0) && fabs(devi(1)) < mp_.local_update_range_(1) &&
-        fabs(devi(2)) < mp_.local_update_range_(2)) {
+    if (devi.squaredNorm() < 64) md_.proj_points_[md_.proj_points_cnt++] = p3d;
+    // if (fabs(devi(0)) < mp_.local_update_range_(0) && fabs(devi(1)) < mp_.local_update_range_(1) &&
+    //     fabs(devi(2)) < mp_.local_update_range_(2)) {
 
       /* inflate the point */
-      for (int x = -inf_step; x <= inf_step; ++x)
-        for (int y = -inf_step; y <= inf_step; ++y)
-          for (int z = -inf_step_z; z <= inf_step_z; ++z) {
+      // for (int x = -inf_step; x <= inf_step; ++x)
+      //   for (int y = -inf_step; y <= inf_step; ++y)
+      //     for (int z = -inf_step_z; z <= inf_step_z; ++z) {
 
-            p3d_inf(0) = pt.x + x * mp_.resolution_;
-            p3d_inf(1) = pt.y + y * mp_.resolution_;
-            p3d_inf(2) = pt.z + z * mp_.resolution_;
+      //       p3d_inf(0) = pt.x + x * mp_.resolution_;
+      //       p3d_inf(1) = pt.y + y * mp_.resolution_;
+      //       p3d_inf(2) = pt.z + z * mp_.resolution_;
 
-            max_x = max(max_x, p3d_inf(0));
-            max_y = max(max_y, p3d_inf(1));
-            max_z = max(max_z, p3d_inf(2));
+      //       max_x = max(max_x, p3d_inf(0));
+      //       max_y = max(max_y, p3d_inf(1));
+      //       max_z = max(max_z, p3d_inf(2));
 
-            min_x = min(min_x, p3d_inf(0));
-            min_y = min(min_y, p3d_inf(1));
-            min_z = min(min_z, p3d_inf(2));
+      //       min_x = min(min_x, p3d_inf(0));
+      //       min_y = min(min_y, p3d_inf(1));
+      //       min_z = min(min_z, p3d_inf(2));
 
-            posToIndex(p3d_inf, inf_pt);
+      //       posToIndex(p3d_inf, inf_pt);
 
-            if (!isInMap(inf_pt)) continue;
+      //       if (!isInMap(inf_pt)) continue;
 
-            int idx_inf = toAddress(inf_pt);
+      //       int idx_inf = toAddress(inf_pt);
 
-            md_.occupancy_buffer_inflate_[idx_inf] = 1;
-          }
-    }
+      //       // md_.occupancy_buffer_inflate_[idx_inf] = 1;
+      //       md_.proj_points_[md_.proj_points_cnt++] = p3d_inf;
+      //     }
+    // }
   }
 
-  min_x = min(min_x, md_.camera_pos_(0));
-  min_y = min(min_y, md_.camera_pos_(1));
-  min_z = min(min_z, md_.camera_pos_(2));
+  // min_x = min(min_x, md_.camera_pos_(0));
+  // min_y = min(min_y, md_.camera_pos_(1));
+  // min_z = min(min_z, md_.camera_pos_(2));
 
-  max_x = max(max_x, md_.camera_pos_(0));
-  max_y = max(max_y, md_.camera_pos_(1));
-  max_z = max(max_z, md_.camera_pos_(2));
+  // max_x = max(max_x, md_.camera_pos_(0));
+  // max_y = max(max_y, md_.camera_pos_(1));
+  // max_z = max(max_z, md_.camera_pos_(2));
 
-  max_z = max(max_z, mp_.ground_height_);
+  // max_z = max(max_z, mp_.ground_height_);
 
-  posToIndex(Eigen::Vector3d(max_x, max_y, max_z), md_.local_bound_max_);
-  posToIndex(Eigen::Vector3d(min_x, min_y, min_z), md_.local_bound_min_);
+  // posToIndex(Eigen::Vector3d(max_x, max_y, max_z), md_.local_bound_max_);
+  // posToIndex(Eigen::Vector3d(min_x, min_y, min_z), md_.local_bound_min_);
 
-  boundIndex(md_.local_bound_min_);
-  boundIndex(md_.local_bound_max_);
+  // boundIndex(md_.local_bound_min_);
+  // boundIndex(md_.local_bound_max_);
 
-  md_.esdf_need_update_ = true;
+  // md_.esdf_need_update_ = true;
+  md_.sub_cloudpoint_ = true;
+  md_.occ_need_update_ = true;
 }
 
 //将当前的？占据的栅格发布出来
@@ -1475,7 +1479,7 @@ void SDFMap::publishMap() {
     min_cut = Eigen::Vector3i::Zero();
     max_cut = mp_.map_voxel_num_;    
   }
-  max_cut.z() = min((int)floor((0.5 - mp_.map_origin_(2)) * mp_.resolution_inv_), md_.local_bound_max_(2));
+  max_cut.z() = min((int)floor((2.5 - mp_.map_origin_(2)) * mp_.resolution_inv_), md_.local_bound_max_(2));
   boundIndex(min_cut);
   boundIndex(max_cut);
 
@@ -1967,8 +1971,8 @@ void SDFMap::depthOdomCallback(const sensor_msgs::ImageConstPtr& img,
   /* get pose */
   md_.camera_pos_(0) = odom->pose.pose.position.x;
   md_.camera_pos_(1) = odom->pose.pose.position.y;
-  // md_.camera_pos_(2) = odom->pose.pose.position.z;
-  md_.camera_pos_(2) = 0.0;
+  md_.camera_pos_(2) = odom->pose.pose.position.z;
+  // md_.camera_pos_(2) = 0.0;
   // ROS_INFO("----------");
 
   // 这里其实是lidar的姿态
