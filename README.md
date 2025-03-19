@@ -33,8 +33,8 @@ Unzip the **3rd.zip** to a different path of your choice, and run the following 
   sudo make install
 ```
 - Step3:
-Change the *nlopt path* in "*fast_planner/bspline_opt/CMakeLists.txt Line 19*" to yours. 
-Change the *FilePath* in "*fast_planner/plan_manage/kino_replan.launch Line 5*" to yours, if you want to save trajectory information and odometry information.
+Change the *nlopt path* in "*fast_planner/bspline_opt/CMakeLists.txt Line 19*" to your path. 
+Change the *FilePath* in "*fast_planner/plan_manage/kino_replan.launch Line 5*" to your path if you want to save trajectory and odometry information.
 
 - Step4:
 ```
@@ -48,7 +48,7 @@ run
 ```
 catkin_make -DCATKIN_WHITELIST_PACKAGES=bspline
 ```
-and then run
+and then 
 ```
 catkin_make -DCATKIN_WHITELIST_PACKAGES=
 ```
@@ -84,7 +84,7 @@ Run ``` sudo apt install ros-noetic-move-base ros-noetic-teb-local-planner ``` t
 
 You can switch planner algorithm to **TEB** by set the *use_teb* parameter to **true** in the *fast_planner/plan_manage/launch/kino_replan.launch Line 6*. Then, run ``` roslaunch plan_manage robot_carlike_in_stage.launch ``` in a new terminator and the robot will move guided by **TEB**.
 
-The config files of **TEB** are at *fast_planner/plan_manage/teb_nav/*.
+The config files of **TEB** are at *"fast_planner/plan_manage/teb_nav/"*.
 
 ## 2. Some Utils
 ### Predifined Waypoints
@@ -131,8 +131,7 @@ The *origin_x* and *origin_y* are calculated as:
 *origin_xy* = *lowerleft.xy* - *map_offset_xy_*, where *lowerleft.xy* is (-50, -10) above, and *map_offset_xy_* is the parameters at "*uav_simulator/gazebo_simulator/launch/gazebo_sim.launch*".
 
 ## 3. Deployment on A Real Robot
-We need **depth image**, **camera pose** and ?????
-I will update this section later...
+We need **depth image**, **camera pose** and ?????. I will update this section later...
 
 ## 4. 
 I will continue to improve this repository and enhance the code in the future.
