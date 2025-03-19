@@ -40,6 +40,20 @@ Change the *FilePath* in **TGH-Planner/fast_planner/plan_manage/kino_replan.laun
 ```
   catkin_make
 ```
+If you meet: 
+```
+Could not find a package configuration file provided by "bspline" with any
+of the following names...
+
+```
+run
+```
+catkin_make -DCATKIN_WHITELIST_PACKAGES=bspline
+```
+and then run
+```
+catkin_make -DCATKIN_WHITELIST_PACKAGES=
+```
 - Step5:
 Open three terminals and run the following commands respectively:
 ```
