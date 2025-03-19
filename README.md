@@ -120,7 +120,7 @@ The executable files "calPathInfo" and "calTrajInfo" can be used to analyse traj
 Set "*fast_planner/plan_manage/launch/kino_algorithm.xml Line 127*" to **true**, the latest optimized B-Spline Trajectories will be recored to "*test/data*". Use the "*.py*" functions to analyse the B-Spline Trajectories.
 
 ### **Draw Robot Trajectory on Map**
-Use [collision_map_creator_plugin]([https://github.com/HKUST-Aerial-Robotics/Fast-Planner](https://github.com/tik0/collision_map_creator_plugin)) to transform a Gazebo world to a "*.png*" 2D map.
+Use [collision_map_creator_plugin](https://github.com/tik0/collision_map_creator_plugin) to transform a Gazebo world to a "*.png*" 2D map.
 Example code: 
 ```
 ./request_publisher "(-50,-10)(10,10)" 1 0.02 $(pwd)/map.png
