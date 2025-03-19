@@ -80,9 +80,7 @@ We are not using the physics simulation in Gazebo. Instead, we set the car pose 
 Change the parameters of *map_offset_x-y-yaw_* to fit the coordinates between Rviz and Gazebo.
 
 ### **TEB**
-Run ``` sudo apt install ros-noetic-move-base ros-noetic-teb-local-planner ``` to install move_base and teb_planner.
-
-You can switch planner algorithm to **TEB** by set the *use_teb* parameter to **true** in the *fast_planner/plan_manage/launch/kino_replan.launch Line 6*. Then, run ``` roslaunch plan_manage robot_carlike_in_stage.launch ``` in a new terminator and the robot will move guided by **TEB**.
+Run ``` sudo apt install ros-noetic-move-base ros-noetic-teb-local-planner ``` to install move_base and teb_planner. You can switch planner algorithm to **TEB** by set the *use_teb* parameter to **true** in the *"fast_planner/plan_manage/launch/kino_replan.launch Line 6"*. Then, run ``` roslaunch plan_manage robot_carlike_in_stage.launch ``` in a new terminator and the robot will move guided by **TEB**.
 
 The config files of **TEB** are at *"fast_planner/plan_manage/teb_nav/"*.
 
