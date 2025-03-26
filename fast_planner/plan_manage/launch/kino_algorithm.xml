@@ -19,17 +19,6 @@
   <arg name="max_vel"/>
   <arg name="max_acc"/>
 
-  <arg name="point_num"/>
-  <arg name="point0_x"/>
-  <arg name="point0_y"/>
-  <arg name="point0_z"/>
-  <arg name="point1_x"/>
-  <arg name="point1_y"/>
-  <arg name="point1_z"/>
-  <arg name="point2_x"/>
-  <arg name="point2_y"/>
-  <arg name="point2_z"/>
-
   <arg name="flight_type"/>
   <arg name="pose_type"/>
   <arg name="clearance_all" default="0.2"/>
@@ -51,16 +40,6 @@
     <param name="fsm/thresh_replan" value="2.0" type="double"/> 
     <param name="fsm/thresh_no_replan" value="2.0" type="double"/>
 
-    <param name="fsm/waypoint_num" value="$(arg point_num)" type="int"/>
-    <param name="fsm/waypoint0_x" value="$(arg point0_x)" type="double"/>
-    <param name="fsm/waypoint0_y" value="$(arg point0_y)" type="double"/>
-    <param name="fsm/waypoint0_z" value="$(arg point0_z)" type="double"/>
-    <param name="fsm/waypoint1_x" value="$(arg point1_x)" type="double"/>
-    <param name="fsm/waypoint1_y" value="$(arg point1_y)" type="double"/>
-    <param name="fsm/waypoint1_z" value="$(arg point1_z)" type="double"/>
-    <param name="fsm/waypoint2_x" value="$(arg point2_x)" type="double"/>
-    <param name="fsm/waypoint2_y" value="$(arg point2_y)" type="double"/>
-    <param name="fsm/waypoint2_z" value="$(arg point2_z)" type="double"/>
     <param name="fsm/use_teb" value="$(arg use_teb)"/>
 
     <param name="sdf_map/resolution"      value="0.1" /> 
