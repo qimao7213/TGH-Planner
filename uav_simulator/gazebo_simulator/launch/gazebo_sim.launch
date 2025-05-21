@@ -6,7 +6,7 @@
   <arg name="debug" default="false"/>
   <arg name="verbose" default="false"/>
   <!-- <arg name="world_file" default="/home/bhrqhb/catkin_ws/planner/catkin_ws_faster_uav/src/acl-gazebo/acl_sim/worlds/icra0.world" /> -->
-  <arg name="world_file" default="$(find gazebo_simulator)/world/zigzag7.world" />
+  <arg name="world_file" default="$(find gazebo_simulator)/world/icra0.world" />
   
   <!-- Start gazebo and load the world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch" >

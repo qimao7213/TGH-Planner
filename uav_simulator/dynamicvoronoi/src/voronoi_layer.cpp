@@ -197,7 +197,7 @@ void VoronoiLayer::publishVoronoiGrid(int size_x, int size_y ,float resolution)
 
   grid.info.origin.position.x = -0.5 * size_x * resolution;
   grid.info.origin.position.y = -0.5 * size_y * resolution;
-  grid.info.origin.position.z = 0.0;
+  grid.info.origin.position.z = 0.1;
   grid.info.origin.orientation.w = 1.0;
 
   grid.data.resize(nx * ny);
