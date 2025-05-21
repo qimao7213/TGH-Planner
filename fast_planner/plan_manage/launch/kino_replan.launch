@@ -4,7 +4,7 @@
 
   <arg name="FilePath" value="/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/"/>
   <arg name="use_teb" value="false"/>
-  <arg name="use_gazebo" value="false" />
+  <arg name="use_gazebo" value="true" />
 
   <!--这个odom是仿真的-->
   <arg name="used_odom_name" value="/car/odom"/>
@@ -15,30 +15,29 @@
   <arg name="max_steering_angel" value="45.0"/>
   <arg name="wheel_base" value="0.5"/>
   <!-- size of map, change the size in x, y, z according to your application -->
-  <arg name="map_size_x" value="60.0"/>
-  <arg name="map_size_y" value="60.0"/>
+  <arg name="map_size_x" value="80.0"/>
+  <arg name="map_size_y" value="80.0"/>
   <arg name="map_size_z" value=" 5.0"/>
 
-  <!-- topic of your odometry such as VIO or LIO -->
-  <!--这个UKF_odom是仿真加了噪声后的-->
-  <!-- pose_type 是sdf_map.cpp里面，订阅的是pose就设置为1，odom就设置为2 -->
+  <!-- odom_topic是planner订阅用于规划 -->
+  <!-- perception_data是sdf_map订阅用于建图，数据的位姿直接去tf里面查询，就不用再订阅传感器的位姿了 -->
+  <!-- perception_data_type，用于处理depth_image = 1, 或者 point_cloud = 1-->
+  <!-- lidar_link是雷达安装的位置，和小车的坐标轴一致 -->
+  <!-- camera_link是相机安装的位置，和小车的坐标轴一致；camera_frame是图像帧的坐标轴，z轴朝前，x朝左，y朝右 -->
   <arg name="odom_topic" value="/car/odom" />
-  <arg name="camera_pose_topic" value="/pcl_render_node/camera_pose"/>
-  <arg name="depth_topic" if="$(arg use_gazebo)" value="/camera2/depth/image_raw" />
-  <arg name="depth_topic" unless="$(arg use_gazebo)" value="/pcl_render_node/depth" />
-  <arg name="pose_type" value="1" />
+  <arg name="lidar_link" value="jackal/velodyne/VLP_16" />  
+  <arg name="camera_link" value="d435_link" />
+  <arg name="camera_frame" value="d435_depth_optical_frame" />  
 
-  <!-- 这里是接入实物时用的: ORB-SLAM3 -->
-  <!-- <arg name="odom_topic" value="/orbslam_odom" />
-  <arg name="camera_pose_topic" value="/orbslam_pose"/>
-  <arg name="depth_topic" value="/orbslam_depth" />
-  <arg name="pose_type" value="1" /> -->
+  <!-- <arg name="perception_data_type" value="1" />
+  <arg name="perception_data" value="/d435/depth/image_raw"/>
+  <arg name="min_ray_length" value="0.1"/>
+  <arg name="max_ray_length" value="7.0"/> -->
 
-  <!-- 这里是接入实物时用的: Fast-lio2 -->
-  <!-- <arg name="odom_topic" value="/Odometry" /> 
-  <arg name="camera_pose_topic" value="/orbslam_pose"/>
-  <arg name="depth_topic" value="/camera/depth/image_raw" />
-  <arg name="pose_type" value="2" /> -->
+  <arg name="perception_data_type" value="2" />
+  <arg name="perception_data" value="/jackal/velodyne/velodyne_points"/>
+  <arg name="min_ray_length" value="0.1"/>
+  <arg name="max_ray_length" value="10.0"/>
 
   <param name="/use_sim_time" value="false" />
   <!-- main algorithm params -->
@@ -51,33 +50,20 @@
     <arg name="map_size_y_" value="$(arg map_size_y)"/>
     <arg name="map_size_z_" value="$(arg map_size_z)"/>
     <arg name="odometry_topic" value="$(arg odom_topic)"/>
-    <arg name="pose_type" value="$(arg pose_type)"/>
-    <!-- camera pose: transform of camera frame in the world frame -->
+    <arg name="perception_data" value="$(arg perception_data)"/>
+    <arg name="perception_data_type" value="$(arg perception_data_type)"/>
+    <arg name="camera_frame" value="$(arg camera_frame)"/>
+    <arg name="camera_link" value="$(arg camera_link)"/>
+    <arg name="lidar_link" value="$(arg lidar_link)"/>
+    <arg name="min_ray_length" value="$(arg min_ray_length)"/>
+    <arg name="max_ray_length" value="$(arg max_ray_length)"/>
     <!-- depth topic: depth image, 640x480 by default -->
-    <!-- don't set cloud_topic if you already set these ones! -->
-    <arg name="camera_pose_topic" value="$(arg camera_pose_topic)"/>
-    <arg name="depth_topic" value="$(arg depth_topic)"/>
-
-    <!-- topic of point cloud measurement, such as from LIDAR  -->
-    <!-- don't set camera pose and depth, if you already set this one! -->
-    <arg name="cloud_topic" value="/pcl_render_node/cloud"/>
-
-    <!-- intrinsic params of the depth camera -->
-    <!-- <arg name="cx" value="430.02810168243263"/>
-    <arg name="cy" value="241.4181046879807"/>
-    <arg name="fx" value="431.7921474383181"/>
-    <arg name="fy" value="432.25718537152386"/> -->
-    <!-- <arg name="cx" value="321.04638671875"/>
-    <arg name="cy" value="243.44969177246094"/>
-    <arg name="fx" value="387.229248046875"/>
-    <arg name="fy" value="387.229248046875"/> -->
-
     <!-- this param should consist with camera.yaml -->
     <!-- if use gazebo, this should consist with depth_camera_info -->
-    <arg name="cx" value="320.5"/>
-    <arg name="cy" value="240.5"/>
-    <arg name="fx" value="381.4011937718128"/>
-    <arg name="fy" value="381.4011937718128"/>
+    <arg name="cx" value="320.0"/>
+    <arg name="cy" value="240.0"/>
+    <arg name="fx" value="381.3624572753906"/>
+    <arg name="fy" value="381.3624572753906"/>
 
     <!-- maximum velocity and acceleration the drone will reach -->
     <arg name="max_vel" value="$(arg max_vel_)" />
@@ -85,7 +71,7 @@
     <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/> 
     <!-- 1: use 2D Nav Goal to select goal  -->
     <!-- 2: use global waypoints below  -->
-    <arg name="flight_type" value="2" />
+    <arg name="flight_type" value="1" />
     
     <arg name="use_teb" value="$(arg use_teb)" />
   </include>
@@ -109,9 +95,9 @@
     <!-- <param name="waypoint_type" value="waypts-target-2D"/>  -->
     <rosparam file="$(find plan_manage)/config/waypts_2d.yaml"/>  
   </node>
-  <node pkg="tf2_ros" type="static_transform_publisher" name="lidar_link" args="0 0 0 0 0 0 1 /world /camera_init"/>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="lidar_link" args="0 0 0 0 0 0 1 /world /map"/>
 
-
+  <node pkg="dynavoro" name="dynavoro" type="mainLauMethod" output="log"/>
   <!-- car_mpc -->
   <include file="$(find car_mpc)/launch/simulation.launch">
     <arg name="wheel_base_" value="$(arg wheel_base)"/>  
@@ -134,13 +120,11 @@
     <arg name="map_size_x_" value="$(arg map_size_x)"/>
     <arg name="map_size_y_" value="$(arg map_size_y)"/>
     <arg name="map_size_z_" value="$(arg map_size_z)"/>
-    <arg name="c_num" value="250"/>
+    <arg name="c_num" value="0"/>
     <arg name="p_num" value="250"/>
     <arg name="w_num" value="0"/>
     <arg name="u_w_num" value="0"/>
     <arg name="odometry_topic" value="$(arg odom_topic)" />
-    <arg name="camera_pose_topic" value="$(arg camera_pose_topic)"/>
-    <arg name="depth_topic" value="$(arg depth_topic)"/>
     <!-- MODE -->
     <arg name="use_teb" value="$(arg use_teb)" />
     <arg name="use_gazebo" value="$(arg use_gazebo)" />

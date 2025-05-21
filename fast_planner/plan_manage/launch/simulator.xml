@@ -13,13 +13,17 @@
   <arg name="init_z" value="0.5"/> 
   <arg name="init_phi" value="180"/>  -->
   <!-- icra0 -25, -24, phi:0 -->
-  <!-- bugtrap10 -25, phi:0 -->
+  <!-- bugtrap10 -25, 0, phi:0 -->
   <!-- zigzag -25, -24, phi:0 -->
   <!-- local plan 0 0 0 , phi: 90-->
   <!-- perception: 1, -6, phi: 90 -->
   <arg name="init_x" value="-25"/>
-  <arg name="init_y" value="-24"/>
-  <arg name="init_z" value="0.5"/> 
+  <arg name="init_y" value="0"/>
+  <arg name="init_z" value="0.1"/> 
+  <!-- 对init_z解释：对于二维的情况，z轴是不改变的。car的位姿用于设置gazebo里面model的位姿，对应的是base_link，对应的是机器人和地面的接触部分 -->
+  <!-- 因此，init_z要稍微比地面高一点？不然gazebo里面机器人和地面发生碰撞而不稳定  -->
+  <!-- 如果gazebo机器人的位姿不是set_model_node确定，而是由物理算出来的，那么这一部分应该就不用考虑了 -->
+
   <arg name="init_phi" value="90"/> 
   <arg name="obj_num" value="1" />
   <arg name="use_teb"/>  
@@ -32,8 +36,6 @@
   <arg name="w_num"/>
   <arg name="u_w_num"/>
   <arg name="odometry_topic"/>
-  <arg name="camera_pose_topic"/>
-  <arg name="depth_topic"/>
   <arg name="FilePath"/>
 
   <node pkg ="map_generator" name ="random_forest" type ="random_forest" output = "screen">    
@@ -67,19 +69,6 @@
 
   <!-- car simulator -->
   <group if="$(arg only2D)">
-    <!-- <node pkg="plan_manage" name="mpc_car" type="mpc_car" output="screen">   
-      <param name="rate/odom" value="200.0"/>
-      <param name="simulator/init_state_x" value="$(arg init_x)"/>
-      <param name="simulator/init_state_y" value="$(arg init_y)"/>
-      <param name="simulator/init_state_z" value="$(arg init_z)"/>
-
-      <remap from="~odom" to="$(arg used_odom_name)"/>
-      <remap from="~cmd"  to="$(arg car_cmd)"/>
-    </node> -->
-    <param name="robot_description" textfile="$(find car_simulator)/car_model/default.urdf"/>
-    <!-- <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/> -->
-    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
-
     <node pkg="nodelet" type="nodelet" name="car_simulator" args="standalone car_simulator/Nodelet" output="screen">
       <param name="simulator/init_state_x" value="$(arg init_x)"/>
       <param name="simulator/init_state_y" value="$(arg init_y)"/>
@@ -93,25 +82,6 @@
       <remap from="~cmd"  to="$(arg car_cmd)"/>
     </node>
 
-    <!-- <node pkg="nodelet" type="nodelet" name="car_mpc" args="standalone car_mpc/Nodelet" output="screen">
-      <param name="car_mpc/dt" value="0.04" type="double"/>
-      <param name="car_mpc/wheel_base" value="$(arg wheel_base_)" type="double"/>
-      <param name="car_mpc/desired_v" value="1.5" type="double"/> 
-      <param name="car_mpc/rho" value="1.0" type="double"/>
-      <param name="car_mpc/N" value="50" type="int"/>
-      <param name="car_mpc/rhoN" value="2.0" type="double"/>
-      <param name="car_mpc/v_max" value="$(arg max_vel)" type="double"/>
-      <param name="car_mpc/a_max" value="$(arg max_acc)" type="double"/>
-      <param name="car_mpc/delta_max"  value="$(arg max_steering_angel_)" type="double"/>
-      <param name="car_mpc/ddelta_max" value="2.0" type="double"/>
-
-      <remap from="~odometry"   to="$(arg odometry_topic)"/> 
-      <remap from="~cmd"  to="$(arg car_cmd)"/>
-    </node> -->
-
-    <!-- <node pkg="send_cmd" type="send_cmd" name="send_cmd" output="screen">
-      <remap from="~odometry"   to="$(arg odometry_topic)"/> 
-    </node> -->
   </group>
 
   <group if="$(arg only2D_not)">
@@ -178,11 +148,8 @@
 
   <group if="$(arg use_gazebo)">
     <include file="$(find gazebo_simulator)/launch/gazebo_sim.launch">
-      <!-- <remap from="/gazebo/camera_pose_topic"   to="$(arg camera_pose_topic)"/> -->
-      <!-- <remap from="/gazebo/depth_topic"   to="$(arg depth_topic)"/> -->
+      <arg name="odom_name" value="$(arg used_odom_name)"/>
     </include>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="gazebo_link" args="0 0 0 0 0 0 1 /car_model /base_link"/>
-    <node pkg="tf2_ros" type="static_transform_publisher" name="camera_corr" args="0 0 0 -1.57 0 -1.57 /camera_link /support_depth" />
   </group>
 
 </launch>

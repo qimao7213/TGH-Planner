@@ -11,8 +11,6 @@ Panels:
         - /Mapping1/simulation_map1/Autocompute Value Bounds1
         - /MPC1/mpc_path_ref1
         - /planning_2D1
-        - /UFOMap1/Voxel Rendering1
-        - /UFOMap1/Occupancy Thresholds1
         - /TF1/Frames1
       Splitter Ratio: 0.5292792916297913
     Tree Height: 865
@@ -34,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: esdf_2d
+    SyncSource: ""
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -292,7 +290,7 @@ Visualization Manager:
           Marker Topic: /planning/travel_traj_real
           Name: executed_traj
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -826,60 +824,6 @@ Visualization Manager:
           Value: true
       Enabled: true
       Name: fiesta
-    - Class: UFOMap
-      Enabled: true
-      Information:
-        "# Inner Nodes": 17,985
-        "# Leaf Nodes": 35,720
-        Resolution: 10 cm
-        Size: 420.55 KiB
-      Min. Depth: 0
-      Name: UFOMap
-      Occupancy Thresholds:
-        Free (%): 50
-        Occupied (%): 60
-      Queue size: 10
-      UFOMap Topic: /ufomap_mapping_server_node/map
-      Use BBX:
-        BBX Frame: <Fixed Frame>
-        Maximum:
-          X: 1000
-          Y: 1000
-          Z: 1000
-        Minimum:
-          X: -1000
-          Y: -1000
-          Z: -1000
-        Value: false
-      Value: true
-      Voxel Rendering:
-        Free:
-          Alpha: 0.800000011920929
-          Coloring:
-            Color: 0; 255; 0
-            Factor: 0.800000011920929
-            Value: Fixed
-          Scale: 1
-          Style: Flat Squares
-          Value: false
-        Occupied:
-          Alpha: 1
-          Coloring:
-            Color: 0; 0; 255
-            Factor: 0.800000011920929
-            Value: Z-Axis
-          Scale: 1
-          Style: Flat Squares
-          Value: true
-        Unknown:
-          Alpha: 0.800000011920929
-          Coloring:
-            Color: 255; 255; 255
-            Factor: 0.800000011920929
-            Value: Fixed
-          Scale: 1
-          Style: Flat Squares
-          Value: false
     - Class: rviz/TF
       Enabled: false
       Filter (blacklist): ""

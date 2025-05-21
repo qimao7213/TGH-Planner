@@ -13,7 +13,7 @@
             // "program": "/home/bhrqhb/catkin_ws_fast_planner_sim/devel/lib/plan_env/raycast_test",
             // "program": "/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/calTrajInfo", 
             // "program": "/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/drawTrajMap", 
-            "program": "/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/drawTrajDirMap",
+            "program": "/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/devel/lib/save_map_point/save_map_point",
             "args": ["/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/experiment/bugtrap/FASTER1.txt"],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

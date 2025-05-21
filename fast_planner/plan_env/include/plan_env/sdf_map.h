@@ -43,19 +43,21 @@
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/common/transforms.h>
+#include <pcl_ros/transforms.h>
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/MapMetaData.h>
+#include <geometry_msgs/PolygonStamped.h>
 
 #include <message_filters/subscriber.h>
 #include <message_filters/sync_policies/approximate_time.h>
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/time_synchronizer.h>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <tf2/LinearMath/Quaternion.h>
+#include <tf/transform_listener.h>
 #include <std_msgs/Empty.h>
-
+#include <sensor_msgs/LaserScan.h>
+#include <limits>
+#include <cmath>
 #include <plan_env/raycast.h>
 
 #define logit(x) (log((x) / (1 - (x))))
@@ -88,8 +90,9 @@ struct MappingParameters {
   double resolution_, resolution_inv_;                   // resolution_ = 0.1
   double obstacles_inflation_;                           // 0.099，碰撞障碍物的边界，从而忽略机器人的尺寸
   string frame_id_;                                      // world
-  int pose_type_;                                        // 1代表位姿信息是来自pose，2代表位姿信息是来自odom。对应了不同的解码方式
-  string map_input_;                                     // 1: pose+depth; 2: odom + cloud
+  int perception_data_type_;                             // 
+  string lidar_link_, camera_link_, camera_frame_;       // 
+  Eigen::Matrix3d camera_LinkToFrame_;                      // camera的旋转矩阵
 
   /* camera parameters */
   double cx_, cy_, fx_, fy_;
@@ -131,9 +134,13 @@ struct MappingParameters {
   double visualization_truncate_height_; //发布local占据地图map的时候最高的高度
          // 什么地图？添加了一层天花板，所以无人机搜索路径的时候不会飞得太高。
          // 又这个值比visualization_truncate_height_大，所以可视化的时候不会把天花板显示出来
-  double virtual_ceil_height_;           
-  double ground_height_; //地面高度
-  double camera_height_; // camera height
+  double virtual_ceil_height_;     
+  // ground_height_，地面高度，其实是栅格地图的z轴的最小值，应该小于真实的地面高度把地面包含进去
+  // 这个值应该由初始化的时候，call tf，获取robot base_link（地面）在world下的z轴坐标来确定
+  // sensor_height_，其实表示的是传感器在world下的高度，因为里程计和原始点云都在传感器坐标系下
+  double ground_height_; 
+  double sensor_height_; 
+  double ground_height_diff_ = 0.5;
   bool show_esdf_time_, show_occ_time_; //是不是显示地图更新的耗时
 
   /* active mapping */
@@ -142,7 +149,9 @@ struct MappingParameters {
   // QHB: 2D
   bool need_map_2D_ = true;
   double ground_height_2D_;
-  double height_max_2D_;  
+  // 将world坐标系下[height_obs_min_2D_, height_obs_max_2D_]的设置为障碍物
+  double height_obs_max_2D_;      
+  double height_obs_min_2D_;      
 };
 
 // intermediate mapping data for fusion, esdf
@@ -160,13 +169,16 @@ struct MappingData {
   std::vector<double> tmp_buffer2_;
 
   // QHB: 2D
+  std::vector<double> occupancy_buffer_2D_;        //每个值的范围是（-inf，+inf），十四讲的y，和occupancy_buffer_inflate_的区别
   std::vector<char> occupancy_buffer_inflate_2D_;      //膨胀后的2D占据地图。SDF是根据膨胀后的计算的.0-free, 1-占据, -1-未知
+  std::vector<char> occupancy_buffer_inflate_2D_v2_;   //raycast2D更新出来的地图
   std::vector<char> occupancy_buffer_neg_2D_;    
   std::vector<double> distance_buffer_pos_2D_;         //2D ESDF地图的正、负和总的
   std::vector<double> distance_buffer_neg_2D_;
   std::vector<double> distance_buffer_all_2D_;
   nav_msgs::OccupancyGrid occpancy_map_2D_;
   nav_msgs::OccupancyGrid occpancy_map_2D_binary_;     //把未知的也设置为了0
+  nav_msgs::OccupancyGrid occpancy_map_2D_v2_;         //用raycast2D更新出来的地图
   std::vector<double> tmp_buffer3_;
   std::vector<Eigen::Vector3i> freed_idx_;             //给2D occupancy_buffer_inflate_2D_清理地图用
 
@@ -193,19 +205,29 @@ struct MappingData {
   // depth image projected point cloud
 
   vector<Eigen::Vector3d> proj_points_; //深度图里，可以用来更新占据栅格地图的点云。先分配了固定大小的，具体有多少个点根据proj_points_cnt来确定
+  vector<Eigen::Vector3d> proj_points_local_;
+  sensor_msgs::LaserScan scan_pt_;
+  ros::Time sensor_time_;
   int proj_points_cnt;
 
   // flag buffers for speeding up raycasting
 
   vector<short> count_hit_, count_hit_and_miss_; //count_hit_是统计hit的次数，count_hit_and_miss_是统计hit和miss的次数，即这个节点被访问的次数
-  vector<char> flag_traverse_, flag_rayend_;     //这两个是干啥的。好像是用来提前退出的？说明这个点已经被处理过了
+  vector<char> flag_traverse_, flag_rayend_;     //
   char raycast_num_;
   queue<Eigen::Vector3i> cache_voxel_;
+
+  // 2D raycast
+  vector<short> count_hit_2D_, count_hit_and_miss_2D_; //count_hit_是统计hit的次数，count_hit_and_miss_是统计hit和miss的次数，即这个节点被访问的次数
+  vector<char> flag_traverse_2D_, flag_rayend_2D_;     //
+  char raycast_num_2D_;
+  queue<Eigen::Vector3i> cache_voxel_2D_;
+
 
   // range of updating ESDF
   // esdf地图的更新范围，和updateESDF3d()有关，在raycastProcess时确定，不是全部地图
   Eigen::Vector3i local_bound_min_, local_bound_max_; 
-
+  Eigen::Vector3i total_bound_min_, total_bound_max_; //更新后的整个地图的范围
   // computation time
 
   double fuse_time_, esdf_time_, max_fuse_time_, max_esdf_time_;
@@ -219,7 +241,7 @@ public:
   SDFMap() {}
   ~SDFMap() {}
 
-  enum { POSE_STAMPED = 1, ODOMETRY = 2, INVALID_IDX = -10000 };
+  enum { DEPTH_IMAGE = 1, LIDAR_POINT = 2, INVALID_IDX = -10000 };
 
   // occupancy map management
   void resetBuffer();
@@ -276,7 +298,9 @@ public:
   void getSurroundPts2D(const Eigen::Vector3d& pos, Eigen::Vector3d pts[2][2], Eigen::Vector3d& diff);
   // /inline void setLocalRange(Eigen::Vector3d min_pos, Eigen::Vector3d
   // max_pos);
-
+  void pointcloudToLaserScan(const std::vector<Eigen::Vector3d>& cloud, sensor_msgs::LaserScan& scan_msg,
+    float angle_min, float angle_max, float angle_increment, float range_min, float range_max, float min_height,
+    float max_height, bool use_inf = false, float inf_epsilon = 0.1);
   void updateESDF3d();
   void getSliceESDF(const double height, const double res, const Eigen::Vector4d& range,
                     vector<Eigen::Vector3d>& slice, vector<Eigen::Vector3d>& grad,
@@ -292,7 +316,7 @@ public:
   void publishUnknown();                          //y值小于mp_.clamp_min_log_ - 1e-3的就是Unknown
   void publishUnknown2D();
   void publishDepth();
-
+  void publishScanMsg();
   void checkDist();
   bool hasDepthObservation();
   bool odomValid();
@@ -340,14 +364,17 @@ private:
   // main update process
   void projectDepthImage();
   void raycastProcess();
-  void clearAndInflateLocalMap();//不是很懂这个函数是干啥的
+  void raycastProcess2D();
+  void clearAndInflateLocalMap();
 
   //把一个index pt附近step范围内的检索出来
   inline void inflatePoint(const Eigen::Vector3i& pt, int step, vector<Eigen::Vector3i>& pts);
   int setCacheOccupancy(Eigen::Vector3d pos, int occ);
+  int setCacheOccupancy2D(Eigen::Vector3d pos, int occ);
   // 如果一个点超出地图范围内，那么就找一个地图内的最近的点给它。这样就不会出现索引越界的报错了
   Eigen::Vector3d closetPointInMap(const Eigen::Vector3d& pt, const Eigen::Vector3d& camera_pt);
-
+  bool getTransform(const std::string& source_frame, const std::string& target_frame, const ros::Time& time,
+    Eigen::Vector3d& position, Eigen::Quaterniond& orientation);
   // typedef message_filters::sync_policies::ExactTime<sensor_msgs::Image,
   // nav_msgs::Odometry> SyncPolicyImageOdom; typedef
   // message_filters::sync_policies::ExactTime<sensor_msgs::Image,
@@ -372,7 +399,10 @@ private:
                  esdf_pub_, 
                  update_range_pub_;//那个长方体
   ros::Publisher unknown_pub_, 
-                 depth_pub_;      //一定范围内的深度点云
+                 depth_pub_,      //一定范围内的深度点云
+                 scan_pub_;
+  ros::Publisher depth_pub2_;     //测试发布的点云是否对齐用
+  ros::Publisher update_region_poly_pub_;
   ros::Timer occ_timer_, esdf_timer_, vis_timer_;
 
   //给深度图加噪声用的，但是先在没有使用

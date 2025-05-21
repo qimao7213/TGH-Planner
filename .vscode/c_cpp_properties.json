@@ -7,7 +7,7 @@
               "/usr/include/eigen3",
               "/usr/include/pcl-1.10",
               "/usr/include/opencv4"
-            //   ,"/opt/ros/noetic/include/**"
+              ,"/opt/ros/noetic/include/**"
           ],
           "defines": [],
           "compilerPath": "/usr/bin/gcc",

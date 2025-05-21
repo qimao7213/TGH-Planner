@@ -82,6 +82,8 @@
         "future": "cpp",
         "ratio": "cpp",
         "orderingmethods": "cpp",
-        "dense": "cpp"
+        "dense": "cpp",
+        "any": "cpp",
+        "format": "cpp"
     }
 }

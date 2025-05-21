@@ -64,7 +64,7 @@ TebLocalPlannerROS:
  include_dynamic_obstacles: True 
 
 # costmap_converter::CostmapToLatticePolygons
- costmap_converter_plugin: "costmap_converter::CostmapToLatticePolygons"
+ costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
  costmap_converter_spin_thread: True
  costmap_converter_rate: 20
 

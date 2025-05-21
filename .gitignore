@@ -3,3 +3,5 @@ test/traj_record/traj_real_vel.txt
 test/traj_record/traj_real_vel.png
 test/traj_record/traj_cmd.txt
 test/*
+uav_simulator/save_map_point/*
+

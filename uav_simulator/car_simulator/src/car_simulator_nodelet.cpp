@@ -150,7 +150,7 @@ class Nodelet : public nodelet::Nodelet {
     odom_pub_.publish(odom_msg);
 
     tf::Transform transform;
-    transform.setOrigin(tf::Vector3(car.state(0), car.state(1), 0));
+    transform.setOrigin(tf::Vector3(car.state(0), car.state(1), car_height_));
 
     static tf::TransformBroadcaster transform_broadcaster;
     tf::Quaternion q;
@@ -162,7 +162,7 @@ class Nodelet : public nodelet::Nodelet {
 
     transform_broadcaster.sendTransform(tf::StampedTransform(transform,
                                                               ros::Time::now(), "/world",
-                                                              "/car_model"));
+                                                              "/base_link"));
   }
 
   // 用来打印实时状态
