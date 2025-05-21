@@ -19,7 +19,26 @@ Please kindly star :star: this project if it helps you. We take great efforts to
 TGH-Planner is based on the the excellent work of [FAST-Planner](https://github.com/HKUST-Aerial-Robotics/Fast-Planner).
 
 ## 1. Build and Start
-**Dependencies:** Ubuntn20.04, ROS1, OpenCV, xterm, CUDA (Optional, see FAST-Planner)
+**Dependencies:** Ubuntn20.04, ROS1, OpenCV. Install required tools:
+```bash
+sudo apt-get install ros-noetic-navigation \
+ros-noetic-gazebo-* \
+ros-noetic-gazebo-ros-control* \
+ros-noetic-controller-* \
+ros-noetic-tf2-* \
+ros-noetic-octomap-* \
+ros-noetic-velodyne-* \
+ros-noetic-pointgrey-camera-description \
+ros-noetic-twist-mux \
+ros-noetic-teleop-twist-joy \
+ros-noetic-lms1xx \
+ros-noetic-interactive-marker-twist-server \
+libgoogle-glog-dev \
+libignition-common3-graphics-dev \
+libignition-common3-profiler-dev \
+python3-tk 
+xterm
+```
 - Step1:
 ```
   cd ${YOUR_WORKSPACE_PATH}/src
