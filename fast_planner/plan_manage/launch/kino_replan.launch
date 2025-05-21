@@ -24,6 +24,7 @@
   <!-- perception_data_type，用于处理depth_image = 1, 或者 point_cloud = 1-->
   <!-- lidar_link是雷达安装的位置，和小车的坐标轴一致 -->
   <!-- camera_link是相机安装的位置，和小车的坐标轴一致；camera_frame是图像帧的坐标轴，z轴朝前，x朝左，y朝右 -->
+  <!-- 当前lidar的感知范围为11m， max_ray_length要比这个小才行-->
   <arg name="odom_topic" value="/car/odom" />
   <arg name="lidar_link" value="jackal/velodyne/VLP_16" />  
   <arg name="camera_link" value="d435_link" />

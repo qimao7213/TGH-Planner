@@ -24,10 +24,6 @@
   <arg name="max_vel"/>
   <arg name="max_acc"/>
 
-<<<<<<< HEAD
-
-=======
->>>>>>> c9c69809f99e0008c2ba38415079625f7819f55e
   <arg name="flight_type"/>
   <arg name="clearance_all" default="0.2"/>
   <arg name="use_teb"/>

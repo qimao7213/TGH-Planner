@@ -12,9 +12,7 @@ Panels:
         - /Simulation1
         - /MPC1/mpc_path_ref1
         - /planning_2D1
-        - /planning_2D1/update_region1
         - /TF1/Frames1
-        - /GVG_vertex1
       Splitter Ratio: 0.6141732335090637
     Tree Height: 526
   - Class: rviz/Selection
@@ -83,7 +81,7 @@ Visualization Manager:
           Color: 0; 0; 0
           Color Transformer: AxisColor
           Decay Time: 0
-          Enabled: true
+          Enabled: false
           Invert Rainbow: false
           Max Color: 0; 0; 0
           Min Color: 0; 0; 0
@@ -98,7 +96,7 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
+          Value: false
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -278,14 +276,14 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 2.577535390853882
-            Min Value: -0.007089346647262573
+            Max Value: 4.019120216369629
+            Min Value: 0.0006388804758898914
             Value: true
           Axis: Z
           Channel Name: intensity
           Class: rviz/PointCloud2
           Color: 173; 127; 168
-          Color Transformer: FlatColor
+          Color Transformer: AxisColor
           Decay Time: 0
           Enabled: false
           Invert Rainbow: false
@@ -298,7 +296,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.10000000149011612
           Style: Flat Squares
-          Topic: /jackal/velodyne/velodyne_points
+          Topic: /sdf_map/depth_cloud
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -312,7 +310,7 @@ Visualization Manager:
           Axis: Z
           Channel Name: intensity
           Class: rviz/LaserScan
-          Color: 0; 0; 0
+          Color: 239; 41; 41
           Color Transformer: FlatColor
           Decay Time: 0
           Enabled: true
@@ -921,7 +919,7 @@ Visualization Manager:
           Color: 255; 255; 255
           Color Transformer: Intensity
           Decay Time: 0
-          Enabled: false
+          Enabled: true
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Max Intensity: 1
@@ -938,27 +936,17 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: false
+          Value: true
         - Alpha: 0.5
           Class: rviz/Map
           Color Scheme: map
           Draw Behind: false
           Enabled: false
-          Name: Occp_map_2D_raycast
-          Topic: /sdf_map/occupancy_2D_binary
-          Unreliable: false
-          Use Timestamp: false
-          Value: false
-        - Alpha: 0.5
-          Class: rviz/Map
-          Color Scheme: map
-          Draw Behind: false
-          Enabled: true
           Name: Occp_map_2D
           Topic: /sdf_map/occupancy_2D
           Unreliable: false
           Use Timestamp: false
-          Value: true
+          Value: false
         - Alpha: 0.4000000059604645
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
@@ -1328,7 +1316,7 @@ Visualization Manager:
           Value: false
       Enabled: true
       Name: Teb
-    - Alpha: 0.699999988079071
+    - Alpha: 0.4000000059604645
       Class: rviz/Map
       Color Scheme: map
       Draw Behind: false
@@ -1339,13 +1327,13 @@ Visualization Manager:
       Use Timestamp: false
       Value: true
     - Class: rviz/MarkerArray
-      Enabled: false
+      Enabled: true
       Marker Topic: /voronoi_gvg_markers
       Name: GVG_vertex
       Namespaces:
-        {}
+        gvg_vectices: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Alpha: 0.699999988079071
       Class: rviz/Map
       Color Scheme: map
@@ -1439,7 +1427,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 54.098731994628906
+      Distance: 49.26021957397461
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1447,17 +1435,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.8348400592803955
-        Y: -1.4145245552062988
-        Z: -2.891871554311365e-05
+        X: -1.2987446784973145
+        Y: -8.684581756591797
+        Z: -4.649648690246977e-05
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5247963666915894
       Target Frame: <Fixed Frame>
-      Yaw: 4.690319061279297
+      Yaw: 4.75532341003418
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539
