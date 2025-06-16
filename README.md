@@ -39,23 +39,25 @@ libignition-common3-profiler-dev \
 python3-tk 
 xterm
 ```
-- Step1:
+Download [gazebo_models](https://github.com/osrf/gazebo_models) in advance, and put them in directory `~/.gazebo/models`.
+
+**Step1**:
 ```
   cd ${YOUR_WORKSPACE_PATH}/src
   git clone https://github.com/qimao7213/TGH-Planner.git
 ```
-- Step2:
+**Step2**:
 Unzip the **3rd.zip** to a different path of your choice, and run the following codes for each folder:
 ```
   mkdir build && cd build && cmake ..
   make
   sudo make install
 ```
-- Step3:
+**Step3**:
 Change the *nlopt path* in "*fast_planner/bspline_opt/CMakeLists.txt Line 19*" to your path. 
 Change the *FilePath* in "*fast_planner/plan_manage/kino_replan.launch Line 5*" to your path if you want to save trajectory and odometry information.
 
-- Step4:
+**Step4**:
 ```
   catkin_make
 ```
@@ -71,7 +73,7 @@ and then
 ```
 catkin_make -DCATKIN_WHITELIST_PACKAGES=
 ```
-- Step5:
+**Step5**:
 Open three terminals and run the following commands respectively:
 ```
   roscore
