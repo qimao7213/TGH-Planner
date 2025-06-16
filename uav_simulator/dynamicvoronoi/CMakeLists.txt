@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2
   tf2_ros
   tf2_geometry_msgs
+  plan_env
 )
 
 ## 声明 catkin 包
@@ -32,10 +33,15 @@ set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(Eigen3 REQUIRED)
-find_package(CGAL REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 find_package(OpenCV REQUIRED)
-
+# OpenMP
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP found")
+    # add_definitions(-DUSE_OPENMP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+endif()
 ## 包含头文件目录
 include_directories(
   SYSTEM
@@ -54,7 +60,6 @@ add_library(dynavoro
 target_link_libraries( dynavoro
     ${catkin_LIBRARIES} 
     ${PCL_LIBRARIES}
-    ${CGAL_LIBRARIES}
     ${OPNECV_LIBSRARIES}
     )  
 

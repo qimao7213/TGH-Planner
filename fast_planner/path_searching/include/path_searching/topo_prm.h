@@ -221,7 +221,7 @@ private:
   vector<Eigen::Vector3d> discretizeLine(Eigen::Vector3d p1, Eigen::Vector3d p2);
   vector<vector<Eigen::Vector3d>> discretizePaths(vector<vector<Eigen::Vector3d>>& path);
 
-  vector<Eigen::Vector3d> discretizePath(vector<Eigen::Vector3d> path);
+  vector<Eigen::Vector3d> discretizePath(const vector<Eigen::Vector3d>& path);
   void shortcutPath(const vector<Eigen::Vector3d>& path, int path_id, int iter_num = 2);
   void shortcutPath(const int& path_id, const bool& inFront, const int& iter_num = 4);
   vector<Eigen::Vector3d> discretizePath(const vector<Eigen::Vector3d>& path, int pt_num);

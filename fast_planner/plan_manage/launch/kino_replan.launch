@@ -98,7 +98,7 @@
   </node>
   <node pkg="tf2_ros" type="static_transform_publisher" name="lidar_link" args="0 0 0 0 0 0 1 /world /map"/>
 
-  <node pkg="dynavoro" name="dynavoro" type="mainLauMethod" output="log"/>
+  <node pkg="dynavoro" name="dynavoro" type="mainLauMethod" output="screen"/>
   <!-- car_mpc -->
   <include file="$(find car_mpc)/launch/simulation.launch">
     <arg name="wheel_base_" value="$(arg wheel_base)"/>  

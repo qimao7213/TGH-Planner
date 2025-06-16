@@ -80,6 +80,7 @@
 
       <remap from="~odom_test" to="/car/odom"/>
       <remap from="~cmd"  to="$(arg car_cmd)"/>
+      <!-- <remap from="/cmd_vel" to="/jackal_velocity_controller/cmd_vel"/> -->
     </node>
 
   </group>

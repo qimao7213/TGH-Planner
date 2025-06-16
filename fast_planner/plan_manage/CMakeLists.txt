@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   rosparam
   common_srvs
+  dynavoro
 )
 
 # Generate messages in the 'msg' folder
@@ -41,7 +42,7 @@ generate_messages(
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES plan_manage
- CATKIN_DEPENDS plan_env path_searching bspline bspline_opt traj_utils message_runtime
+ CATKIN_DEPENDS plan_env path_searching bspline bspline_opt traj_utils message_runtime dynavoro
 #  DEPENDS system_lib
 )
 

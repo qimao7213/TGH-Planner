@@ -17,6 +17,13 @@ public:
   bool operator==(const IntPoint& other) const {
     return x == other.x && y == other.y;
   }
+  //重载加法
+  IntPoint operator+(const IntPoint& other) const {
+    return IntPoint(x + other.x, y + other.y);
+  }
+  IntPoint operator-(const IntPoint& other) const {
+    return IntPoint(x - other.x, y - other.y);
+  } 
 };
 
 #endif

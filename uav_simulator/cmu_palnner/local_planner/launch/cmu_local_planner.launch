@@ -1,0 +1,13 @@
+<launch>
+    <node pkg="sensor_conversion" type="slam_sim_output_node" name="slam_sim_output_node" output="log" required="true">
+    </node>
+
+    <include file="$(find local_planner)/launch/local_planner.launch">
+    </include>
+
+    <include file="$(find terrain_analysis)/launch/terrain_analysis.launch">
+    </include>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find local_planner)/rviz/cmu_planner.rviz" output="log">
+    </node>
+
+</launch>

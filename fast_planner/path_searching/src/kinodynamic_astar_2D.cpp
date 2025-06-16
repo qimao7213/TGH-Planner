@@ -84,6 +84,7 @@ int KinodynamicAstar2D::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v
   {
     // for(const auto pt : topo_path_) std::cout << pt.transpose() << std::endl;
 
+    // 如果输入的path是稀疏的离散点，则需要下面的稠密处理
     // jps_path_finder_->reset();
     // jps_path_finder_->arrangePath(topo_path_);
     // jps_path_finder_->setZ(start_pt(2));
@@ -94,10 +95,10 @@ int KinodynamicAstar2D::search(Eigen::Vector3d start_pt, Eigen::Vector3d start_v
     const auto& topo_path_points = topo_path_;
     topo_path_distance_ = computePathDis(topo_path_points);
 
-    pcl::PointCloud<pcl::PointXY>::Ptr path_cloud(new pcl::PointCloud<pcl::PointXY>);    
+    pcl::PointCloud<pcl::PointXY>::Ptr path_cloud(new pcl::PointCloud<pcl::PointXY>);
+    pcl::PointXY tmpPoint;    
     for(const auto& topo_path_point : topo_path_points)
     {
-      pcl::PointXY tmpPoint;
       tmpPoint.x = topo_path_point(0);
       tmpPoint.y = topo_path_point(1);
       path_cloud->points.emplace_back(tmpPoint);
@@ -557,7 +558,7 @@ double KinodynamicAstar2D::estimateHeuristic(Eigen::VectorXd x1, Eigen::VectorXd
   optimal_time = 0.0;
   // 这里加入JPS路径or Topo路径作为引导
   // 这里的H项还需要进一步设计
-  if(topo_path_.size() >= 2)
+  if(0)
   {
     std::vector<int> pointIdxNKNSearch(1);
     std::vector<float> pointNKNSquaredDistance(1);

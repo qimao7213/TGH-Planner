@@ -330,6 +330,14 @@ float DynamicVoronoi::getDistance(int x, int y) const
     return -INFINITY;
 }
 
+float DynamicVoronoi::getDistanceSq(int x, int y) const
+{
+  if ((x > 0) && (x < sizeX) && (y > 0) && (y < sizeY))
+    return data[x][y].sqdist;
+  else
+    return -INFINITY;
+}
+
 int DynamicVoronoi::getObstacleX(int x, int y) const
 {
   if ((x > 0) && (x < sizeX) && (y > 0) && (y < sizeY))
@@ -346,10 +354,29 @@ int DynamicVoronoi::getObstacleY(int x, int y) const
     return -1;
 }
 
+Eigen::Vector2i DynamicVoronoi::getObstacle(int x, int y) const
+{
+    return Eigen::Vector2i(data[x][y].obstX, data[x][y].obstY);
+}
+
+
 bool DynamicVoronoi::isVoronoi(int x, int y) const
 {
   dataCell c = data[x][y];
   return (c.voronoi == free || c.voronoi == voronoiKeep);
+}
+
+bool DynamicVoronoi::isVoronoiWithDisThr(int x, int y, float disThreSq) const
+{
+  dataCell c = data[x][y];
+  return ((c.voronoi == free || c.voronoi == voronoiKeep) && c.sqdist > disThreSq - 1e-4);
+}
+bool DynamicVoronoi::isVoronoiWithDisThr(int x, int y, float disThreSqLow, float disThreSqHigh) const
+{
+  dataCell c = data[x][y];
+  return ((c.voronoi == free || c.voronoi == voronoiKeep) && 
+           c.sqdist < disThreSqHigh + 1e-4 && 
+           c.sqdist > disThreSqLow - 1e-4);
 }
 
 bool DynamicVoronoi::isVoronoiAlternative(int x, int y) const
@@ -497,7 +524,7 @@ void DynamicVoronoi::visualize(const char* filename)
   fprintf(F, "P6\n#\n");
   fprintf(F, "%d %d\n255\n", sizeX, sizeY);
 
-  for (int y = sizeY - 1; y >= 0; y--)
+  for (int y = sizeY - 1; y >= 0; --y)
   {
     for (int x = 0; x < sizeX; ++x)
     {
@@ -686,7 +713,7 @@ void DynamicVoronoi::updateAlternativePrunedDiagram()
       // 如果是4邻域连接，邻居voronoi值大于等于3，就一定是节点
       if (getNumVoronoiNeighborsAlternative(x, y) >= 3)
       {
-        if (data[x][y].sqdist >= 0.5)
+        if (data[x][y].sqdist >= 25)
           alternativeDiagram[x][y] = voronoiVertex;
         else
           alternativeDiagram[x][y] = voronoiKeep;
@@ -702,7 +729,7 @@ void DynamicVoronoi::updateAlternativePrunedDiagram()
     {
       if (getNumVoronoiNeighborsAlternative(x, y) >= 3)
       {
-        if (data[x][y].sqdist >= 0.5)
+        if (data[x][y].sqdist >= 25)
           alternativeDiagram[x][y] = voronoiVertex;
         else
           alternativeDiagram[x][y] = voronoiKeep;
@@ -782,7 +809,7 @@ bool DynamicVoronoi::markerMatchAlternative(int x, int y)
   int i = 0;
   //  int obstacleCount=0;
   int voroCount = 0;
-  for (dy = 1; dy >= -1; dy--)
+  for (dy = 1; dy >= -1; --dy)
   {
     ny = y + dy;
     for (dx = -1; dx <= 1; ++dx)
@@ -867,7 +894,7 @@ DynamicVoronoi::markerMatchResult DynamicVoronoi::markerMatch(int x, int y)
   int voroCount = 0;
   int voroCountFour = 0;
 
-  for (dy = 1; dy >= -1; dy--)
+  for (dy = 1; dy >= -1; --dy)
   {
     ny = y + dy;
     for (dx = -1; dx <= 1; ++dx)
@@ -901,8 +928,10 @@ DynamicVoronoi::markerMatchResult DynamicVoronoi::markerMatch(int x, int y)
   }
 
   // 4-connected
+  // T形状
   if ((!f[0] && f[1] && f[3]) || (!f[2] && f[1] && f[4]) || (!f[5] && f[3] && f[6]) || (!f[7] && f[6] && f[4]))
     return keep;
+  // I形状
   if ((f[3] && f[4] && !f[1] && !f[6]) || (f[1] && f[6] && !f[3] && !f[4]))
     return keep;
 

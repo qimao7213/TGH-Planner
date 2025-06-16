@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <queue>
-
+#include <Eigen/Core>
 #include "dvr/bucketedqueue.h"
 
 //! A DynamicVoronoi object computes and updates a distance map and Voronoi diagram.
@@ -47,10 +47,14 @@ public:
 
   //! returns the obstacle distance at the specified location
   float getDistance(int x, int y) const;
+  float getDistanceSq(int x, int y) const;
   int getObstacleX(int x, int y) const;
   int getObstacleY(int x, int y) const;
+  Eigen::Vector2i getObstacle(int x, int y) const;
   //! returns whether the specified cell is part of the (pruned) Voronoi graph
   bool isVoronoi(int x, int y) const;
+  bool isVoronoiWithDisThr(int x, int y, float disThreSq) const;
+  bool isVoronoiWithDisThr(int x, int y, float disThreSqLow, float disThreSqHight) const;
   //! checks whether the specficied location is occupied
   bool isOccupied(int x, int y) const;
   //! write the current distance map and voronoi diagram as ppm file
@@ -81,8 +85,8 @@ private:
 
   typedef enum
   {
-    voronoiVertex = -5,
-    voronoiKeep = -4,
+    voronoiVertex = -5,      //voronoiVertex和voronoiKeep都是顶点（交叉点），只不过voronoiVertex到障碍物的距离更远
+    voronoiKeep = -4,        //这是用于在从end端腐蚀的时候，强行在voronoiVertex处停止用的
     freeQueued = -3,
     voronoiRetry = -2,
     voronoiPrune = -1,

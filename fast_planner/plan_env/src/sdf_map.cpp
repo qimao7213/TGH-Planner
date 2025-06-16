@@ -816,9 +816,9 @@ void SDFMap::projectDepthImage() {
   //                 << "ms. Point cloud size is: " << md_.proj_points_cnt <<", No-valide point num: " 
   //                 << novalid_points_num << ", Total point num: " << md_.depth_image_.cols * md_.depth_image_.rows);
 
-  md_.last_camera_pos_ = md_.camera_pos_;
-  md_.last_camera_q_ = md_.camera_q_;
-  md_.last_depth_image_ = md_.depth_image_;
+  // md_.last_camera_pos_ = md_.camera_pos_;
+  // md_.last_camera_q_ = md_.camera_q_;
+  // md_.last_depth_image_ = md_.depth_image_;
   if(md_.proj_points_cnt == 0) return;
   //将pointcloud转换为scan
   static float scan_angle_increment = M_PI/360.0; // 0.01 rad
@@ -1624,7 +1624,7 @@ void SDFMap::updateESDFCallback(const ros::TimerEvent& /*event*/) {
   /* esdf */
   ros::Time t1, t2;
   t1 = ros::Time::now();
-
+  // const auto start_timestamp = std::chrono::system_clock::now();
   // TODO: 如果我把3d的关掉会怎么样呢
   // updateESDF3d();
   if(mp_.need_map_2D_)
@@ -1637,6 +1637,10 @@ void SDFMap::updateESDFCallback(const ros::TimerEvent& /*event*/) {
   if (mp_.show_esdf_time_)
     ROS_WARN("ESDF: cur t = %lf, avg t = %lf, max t = %lf", (t2 - t1).toSec(),
              md_.esdf_time_ / md_.update_num_, md_.max_esdf_time_);
+
+  // const auto end_timestamp = std::chrono::system_clock::now();
+  // const std::chrono::duration<double> diff = end_timestamp - start_timestamp;
+  // ROS_WARN_STREAM("Update EDSF2D Runtime=" <<  diff.count() * 1e3 );
 
   md_.esdf_need_update_ = false;
 }

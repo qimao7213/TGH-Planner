@@ -84,6 +84,8 @@
         "orderingmethods": "cpp",
         "dense": "cpp",
         "any": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "*.bk": "cpp",
+        "*.bk2": "cpp"
     }
 }

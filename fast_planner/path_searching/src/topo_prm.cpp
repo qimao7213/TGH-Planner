@@ -1063,7 +1063,7 @@ vector<Eigen::Vector3d> TopologyPRM::discretizeLine(Eigen::Vector3d p1, Eigen::V
   return line_pts;
 }
 
-vector<Eigen::Vector3d> TopologyPRM::discretizePath(vector<Eigen::Vector3d> path) {
+vector<Eigen::Vector3d> TopologyPRM::discretizePath(const vector<Eigen::Vector3d>& path) {
   vector<Eigen::Vector3d> dis_path, segment;
 
   if (path.size() < 2) {
