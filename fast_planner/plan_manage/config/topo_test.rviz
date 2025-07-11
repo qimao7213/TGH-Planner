@@ -11,6 +11,7 @@ Panels:
         - /Mapping1/simulation_map1/Autocompute Value Bounds1
         - /MPC1/mpc_path_ref1
         - /planning_2D1
+        - /planning_2D1/Occp_map_2D1
         - /TF1/Frames1
       Splitter Ratio: 0.5292792916297913
     Tree Height: 865
@@ -726,7 +727,7 @@ Visualization Manager:
           Draw Behind: false
           Enabled: true
           Name: Occp_map_2D
-          Topic: /sdf_map/occupancy_2D
+          Topic: /map
           Unreliable: false
           Use Timestamp: false
           Value: true
@@ -1123,7 +1124,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 25.205568313598633
+      Distance: 72.61122131347656
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1131,8 +1132,8 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 2.084526538848877
-        Y: -8.36201286315918
+        X: 19.07025146484375
+        Y: -0.6455860733985901
         Z: -3.5762786865234375e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
@@ -1141,7 +1142,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 4.775102615356445
+      Yaw: 4.7401018142700195
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539

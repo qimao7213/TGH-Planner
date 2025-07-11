@@ -36,62 +36,63 @@ SlamOutput::SlamOutput(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
                                                                                        rate(100), vec_length(2.0),
                                                                                        is_get_first(false) {
     const std::string &ns = ros::this_node::getName();
-    frame_id = "world";
-    if (!ros::param::get(ns + "/frame_id", frame_id)) {
-        ROS_WARN("No frame_id specified. Looking for %s. Default is 'map'.",
-                 (ns + "/frame_id").c_str());
-    }
+    std::string car_odom_topic, local_cloud_sub_topic;
+    // 这个地方有问题，frame_id是SLAM的world坐标系（初始），不是全局的world坐标系
+    nh_private.param("sensor_odom_parent_frame", slam_frame_id, std::string("camera_init"));
+    nh_private.param("car_odom_topic", car_odom_topic, std::string("/car_odom"));
+    nh_private.param("sensor_odom_topic", sensor_odom_topic, std::string("/jackal/velodyne/gazebo_gt/odometry"));
+    nh_private.param("local_cloud_sub_topic", local_cloud_sub_topic, std::string("/jackal/velodyne/velodyne_points"));
+    nh_private.param("lidar_frame", lidar_frame, std::string("jackal/velodyne/VLP_16_base_link"));
+    nh_private.param("is_sim", is_sim, false);
+    nh_private.param("offset_gazebo_world_x", offset_gazebo_world_x, 0.0);
+    nh_private.param("offset_gazebo_world_y", offset_gazebo_world_y, 0.0);
+    nh_private.param("down_voxel_size", down_voxel_size, 0.05);
 
-    child_frame_id = "jackal/velodyne/VLP_16";
-    if (!ros::param::get(ns + "/child_frame_id", child_frame_id)) {
-        ROS_WARN("No child_frame_id specified. Looking for %s. Default is 'sensor'.",
-                 (ns + "/child_frame_id").c_str());
+    T_B_L = Eigen::Isometry3d::Identity();
+    Eigen::Vector3d lidar_in_base = Eigen::Vector3d::Zero();
+    Eigen::Quaterniond q_lidar_in_base = Eigen::Quaterniond::Identity();
+    while (ros::ok() && !getTransform(lidar_frame, "base_link", ros::Time(0), lidar_in_base, q_lidar_in_base)) {
+        ROS_WARN("Waiting for TF: %s -> %s ...", lidar_frame.c_str(), "base_link");
+        ros::Duration(0.5).sleep();
     }
+    T_B_L.linear() = q_lidar_in_base.toRotationMatrix();
+    T_B_L.translation() = lidar_in_base;
 
-    down_voxel_size = 0.02;
-    if (!ros::param::get(ns + "/down_voxel_size", down_voxel_size)) {
-        ROS_WARN("No down_voxel_size specified. Looking for %s. Default is 'down_voxel_size'.",
-                 (ns + "/down_voxel_size").c_str());
+    T_W_SLAM = Eigen::Isometry3d::Identity();
+    Eigen::Vector3d slam_in_world = Eigen::Vector3d::Zero();
+    Eigen::Quaterniond q_slam_in_world = Eigen::Quaterniond::Identity();
+    while (ros::ok() && !getTransform(slam_frame_id, "world", ros::Time(0), slam_in_world, q_slam_in_world)) {
+        ROS_WARN("Waiting for TF: %s -> %s ...", slam_frame_id.c_str(), "world");
+        ros::Duration(0.5).sleep();
     }
+    T_W_SLAM.linear() = q_slam_in_world.toRotationMatrix();
+    T_W_SLAM.translation() = slam_in_world;
 
-    T_B_W = tf::Transform::getIdentity();
 
     downSizeFilter.setLeafSize(down_voxel_size, down_voxel_size, down_voxel_size);
 
     reg_pub = nh_.advertise<sensor_msgs::PointCloud2>("/registered_point_cloud", 1);
     dwz_cloud_pub = nh_.advertise<sensor_msgs::PointCloud2>("/dwz_scan_cloud", 1);
+    odom_pub = nh_.advertise<nav_msgs::Odometry>(car_odom_topic, 1);
 
-    local_cloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(nh_, "/jackal/velodyne/velodyne_points", 1));
-    local_odom_sub_.reset(new message_filters::Subscriber<nav_msgs::Odometry>(nh_, "/car/odom", 100));
+    local_cloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(nh_, local_cloud_sub_topic, 10));
+    local_odom_sub_.reset(new message_filters::Subscriber<nav_msgs::Odometry>(nh_, sensor_odom_topic, 100));
     sync_local_cloud_odom_.reset(new message_filters::Synchronizer<SyncPolicyLocalCloudOdom>(
             SyncPolicyLocalCloudOdom(100), *local_cloud_sub_, *local_odom_sub_));
     sync_local_cloud_odom_->registerCallback(boost::bind(&SlamOutput::pointCloudOdomCallback, this, _1, _2));
+    odom_tf_sub = nh_.subscribe<nav_msgs::Odometry>(sensor_odom_topic, 100, &SlamOutput::odomTfCallback, this);
+
+
 }
 
+// 现在里程计直接就是lidar_link的里程计了
 void SlamOutput::pointCloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr &scanIn,
                                         const nav_msgs::OdometryConstPtr &odomIn) {
-    // 1. 提取base_link在世界坐标系下的位姿
+    // 1. odom表示lidar_link在SLAM系下的位姿和速度
     const auto& pose = odomIn->pose.pose;
-    Eigen::Quaterniond q_base(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-    Eigen::Vector3d t_base(pose.position.x, pose.position.y, pose.position.z);
+    Eigen::Quaterniond q_lidar(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+    Eigen::Vector3d t_lidar(pose.position.x - offset_gazebo_world_x, pose.position.y - offset_gazebo_world_y, pose.position.z);
 
-    // 2. 第一次回调时，记录lidar到base_link的静态变换T_B_L
-    static bool got_T_B_L = false;
-    static Eigen::Isometry3d T_B_L = Eigen::Isometry3d::Identity();
-    if (!got_T_B_L) {
-        // lidar坐标系在base_link下的变换
-        Eigen::Vector3d lidar_in_base = Eigen::Vector3d::Zero();
-        Eigen::Quaterniond q_lidar_in_base = Eigen::Quaterniond::Identity();
-        if (getTransform(scanIn->header.frame_id, "base_link", scanIn->header.stamp, lidar_in_base, q_lidar_in_base)) {
-            T_B_L.linear() = q_lidar_in_base.toRotationMatrix();
-            T_B_L.translation() = lidar_in_base;
-            got_T_B_L = true;
-            ROS_INFO("Got T_B_L from tf.");
-        } else {
-            ROS_WARN("Failed to get T_B_L from tf, skip this frame.");
-            return;
-        }
-    }
 
     // 3. 点云消息转PCL
     pcl::PointCloud<pcl::PointXYZI> cloud;
@@ -107,19 +108,102 @@ void SlamOutput::pointCloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr &
     downSizeFilter.filter(cloud_ds);
 
     // 6. 计算lidar在世界下的变换
-    Eigen::Isometry3d T_W_B = Eigen::Isometry3d::Identity();
-    T_W_B.linear() = q_base.toRotationMatrix();
-    T_W_B.translation() = t_base;
-    Eigen::Isometry3d T_W_L = T_W_B * T_B_L;
+    Eigen::Isometry3d T_SLAM_L = Eigen::Isometry3d::Identity();
+    T_SLAM_L.linear() = q_lidar.toRotationMatrix();
+    T_SLAM_L.translation() = t_lidar;
+
+    Eigen::Isometry3d T_W_B = T_W_SLAM * T_SLAM_L * T_B_L.inverse();
+    // --- twist转换 ---
+    // lidar_link在SLAM系下的速度
+    const auto& twist = odomIn->twist.twist;
+    Eigen::Vector3d v_lidar(twist.linear.x, twist.linear.y, twist.linear.z);
+    Eigen::Vector3d w_lidar(twist.angular.x, twist.angular.y, twist.angular.z);
+
+    // 1. lidar_link -> base_link
+    Eigen::Matrix3d R_B_L = T_B_L.linear();
+    Eigen::Vector3d v_base = R_B_L * v_lidar + R_B_L * w_lidar.cross(-T_B_L.translation());
+    Eigen::Vector3d w_base = R_B_L * w_lidar;
+
+    // 2. base_link -> world
+    Eigen::Matrix3d R_W_B = (T_W_SLAM * T_SLAM_L * T_B_L.inverse()).linear();
+    Eigen::Vector3d v_world = R_W_B * v_base;
+    Eigen::Vector3d w_world = R_W_B * w_base;
 
     // 7. 点云变换到世界坐标系
     pcl::PointCloud<pcl::PointXYZI> cloud_world;
+    Eigen::Isometry3d T_W_L = T_W_SLAM * T_SLAM_L;  
     pcl::transformPointCloud(cloud_ds, cloud_world, T_W_L.matrix());
 
     // 8. 发布
     sensor_msgs::PointCloud2 cloud_msg;
     pcl::toROSMsg(cloud_world, cloud_msg);
     cloud_msg.header.stamp = scanIn->header.stamp;
-    cloud_msg.header.frame_id = frame_id; // 一般为"world"
+    cloud_msg.header.frame_id = world_frame_id; // 
     reg_pub.publish(cloud_msg);
+
+    // 9. 发布里程计
+    nav_msgs::Odometry odom_msg;
+    odom_msg.header.stamp = scanIn->header.stamp;
+    odom_msg.header.frame_id = world_frame_id; // 
+    odom_msg.child_frame_id = "base_link";
+    odom_msg.pose.pose.position.x = T_W_B.translation().x();
+    odom_msg.pose.pose.position.y = T_W_B.translation().y();
+    odom_msg.pose.pose.position.z = T_W_B.translation().z();
+    Eigen::Quaterniond q_W_B(T_W_B.rotation());
+    odom_msg.pose.pose.orientation.x = q_W_B.x();
+    odom_msg.pose.pose.orientation.y = q_W_B.y();
+    odom_msg.pose.pose.orientation.z = q_W_B.z();
+    odom_msg.pose.pose.orientation.w = q_W_B.w();
+    odom_msg.twist.twist.linear.x = v_world.x();
+    odom_msg.twist.twist.linear.y = v_world.y();
+    odom_msg.twist.twist.linear.z = v_world.z();
+    odom_msg.twist.twist.angular.x = w_world.x();
+    odom_msg.twist.twist.angular.y = w_world.y();
+    odom_msg.twist.twist.angular.z = w_world.z();
+
+    odom_pub.publish(odom_msg);
 }
+
+void SlamOutput::odomTfCallback(const nav_msgs::OdometryConstPtr& odom_msg) {
+    // 1. 提取base_link在世界坐标系下的位姿
+    const auto& pose = odom_msg->pose.pose;
+    Eigen::Quaterniond q_lidar(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+    Eigen::Vector3d t_lidar(pose.position.x - offset_gazebo_world_x, pose.position.y - offset_gazebo_world_y, pose.position.z);
+    // 2. 将odom转换为tf发布出来
+    if (is_sim) 
+    {   
+        static double last_tf_pub_time = ros::Time::now().toSec();    
+        double now = ros::Time::now().toSec();
+        if (now - last_tf_pub_time > 0.07) 
+        { // 10Hz限制
+            last_tf_pub_time = now;
+            // 构造T_world_lidar
+            Eigen::Isometry3d T_world_lidar = Eigen::Isometry3d::Identity();
+            T_world_lidar.linear() = q_lidar.toRotationMatrix();
+            T_world_lidar.translation() = t_lidar;
+
+            // 计算T_world_base
+            Eigen::Isometry3d T_world_base = T_world_lidar * T_B_L.inverse();
+
+            // 发布world->base_link的tf
+            tf::Transform tf_transform;
+            tf_transform.setOrigin(tf::Vector3(
+                T_world_base.translation().x(),
+                T_world_base.translation().y(),
+                T_world_base.translation().z()));
+            Eigen::Quaterniond q(T_world_base.rotation());
+            tf::Quaternion tf_quat(q.x(), q.y(), q.z(), q.w());
+            tf_transform.setRotation(tf_quat);
+
+            tf::StampedTransform stamped_tf(
+                tf_transform,
+                odom_msg->header.stamp,
+                slam_frame_id,    // 父坐标系
+                base_frame   // 子坐标系
+            );
+
+            broadcaster.sendTransform(stamped_tf);
+        }
+    }
+}
+

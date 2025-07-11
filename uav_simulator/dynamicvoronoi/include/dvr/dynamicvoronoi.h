@@ -47,10 +47,14 @@ public:
 
   //! returns the obstacle distance at the specified location
   float getDistance(int x, int y) const;
+  float getDistanceNoBoundCheck(int x, int y) const;
   float getDistanceSq(int x, int y) const;
   int getObstacleX(int x, int y) const;
   int getObstacleY(int x, int y) const;
   Eigen::Vector2i getObstacle(int x, int y) const;
+  std::vector<INTPOINT> getAllPruneQueuePoints();
+  std::vector<INTPOINT> getAllSortedPruneQueuePoints();
+
   //! returns whether the specified cell is part of the (pruned) Voronoi graph
   bool isVoronoi(int x, int y) const;
   bool isVoronoiWithDisThr(int x, int y, float disThreSq) const;
@@ -130,6 +134,7 @@ private:
   BucketPrioQueue<INTPOINT> open;
   std::queue<INTPOINT> pruneQueue;
   BucketPrioQueue<INTPOINT> sortedPruneQueue;
+  BucketPrioQueue<INTPOINT> sortedPruneQueueBackup;
 
   std::vector<INTPOINT> removeList;
   std::vector<INTPOINT> addList;

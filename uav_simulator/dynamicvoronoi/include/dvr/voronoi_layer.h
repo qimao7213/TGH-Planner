@@ -25,7 +25,9 @@
 #include <chrono>  // NOLINT
 #include <algorithm>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
+#include <traj_utils/planning_visualization.h>
 using namespace gvg;
 using std::vector;
 namespace DynaVoro
@@ -37,7 +39,7 @@ public:
 
   const DynamicVoronoi& getVoronoi() const;
   boost::mutex& getMutex();
-  bool plan(const Eigen::Vector3d& start, const Eigen::Vector3d& goal);
+  bool plan(Eigen::Vector3d start, Eigen::Vector3d goal, double start_yaw = 0.0);
 
 
 private:
@@ -110,6 +112,7 @@ private:
   }
 
   ros::Publisher voronoi_grid_pub_, gvg_marker_pub_, distance_cloud_pub_, voronoi_occupy_pub_;
+  ros::Publisher voronoi_grid_origin_pub_;
   ros::Publisher path_pub_, path_pub2_;
   ros::Publisher path_pub_test_1_, path_pub_test_2_, path_pub_test_3_;
   ros::Subscriber costmap_sub_;
@@ -127,12 +130,19 @@ private:
   std::shared_ptr<GVG> gvg_;
   pcl::KdTreeFLANN<pcl::PointXY> GvgNodeKdTree_;
   std::shared_ptr<gvg::Planner> gvg_planner_;
+  fast_planner::PlanningVisualization::Ptr visualization_;
 
   Eigen::Vector3d odom_pos_, odom_vel_;  // odometry state
   Eigen::Vector3d lastest_goal_;
   Eigen::Quaterniond odom_orient_;
+  double odom_yaw_;
+  std::vector<Eigen::Vector2d> last_best_path_;  // 上次规划的路径
+  Eigen::Vector3d goal_last_;
   bool has_odom_ = false;  // 是否有里程计数据
   bool has_goal_ = false;  // 是否有目标点
+
+  bool gvg_updated_ = false;  // 是否更新了GVG
+
   // 这里是处理其他的东西
   double pathLength(const vector<Eigen::Vector2d>& path);
   vector<Eigen::Vector2d> shortcutPath(const std::vector<IntPoint>& path, int path_id = 0, int iter_num = 4);
@@ -140,6 +150,8 @@ private:
                  Eigen::Vector2d& pc, int caster_id = 0, int skip_mode = -1);
   bool lineVisib(const Eigen::Vector2i& p1, const Eigen::Vector2i& p2, std::vector<IntPoint>& rayline_list,
                  double thresh, Eigen::Vector2i& pc, int caster_id = 0, int skip_mode = -1);
+  bool lineVisib2(const Eigen::Vector2i& p1, const Eigen::Vector2i& p2, std::vector<IntPoint>& rayline_list,
+                             double thresh, Eigen::Vector2i& pc, int caster_id = 0, int skip_mode = -1);
   void evaluateEDTWithGrad(const Eigen::Vector2d& pos, double& dist, Eigen::Vector2d& grad);
   void getSurroundPts(const Eigen::Vector2d& pos, Eigen::Vector2d pts[2][2], double dists[2][2], 
        Eigen::Vector2d& diff);
@@ -150,8 +162,16 @@ private:
   vector<Eigen::Vector2d> discretizePath(const vector<Eigen::Vector2d>& path);
   vector<vector<Eigen::Vector2d>> discretizePaths(vector<vector<Eigen::Vector2d>>& path);
   vector<Eigen::Vector2d> discretizeLine(Eigen::Vector2d p1, Eigen::Vector2d p2);
-  GraphNode::Ptr creatPathNode(const Eigen::Vector2i& start_coord, std::unordered_map<IntPoint, GraphNode::Ptr>& graph,
-                               pcl::PointCloud<pcl::PointXY>::Ptr node_cloud, int KdNeighborNum, bool startNode = true);
+  GraphNode::Ptr creatPathNode(
+    const Eigen::Vector2i& node_idx,
+    int& start_graph_id,
+    bool& node_on_graph,
+    const vector<IntPoint>& node_strong_cloud,
+    int KdNeighborNum,
+    bool startNode,
+    GraphNode::Ptr node_tmp_ptr);
+  void removeNodeAndConnections(gvg::GraphNode::Ptr node);
+  void removeNodeAndRepairStrongConnection(gvg::GraphNode::Ptr node_tmp_ptr);
 };
 
 class SimpleTimer {
@@ -170,12 +190,13 @@ class SimpleTimer {
           auto end = std::chrono::steady_clock::now();
           return std::chrono::duration<double>(end - start_).count();
       }
-      void print(const std::string& msg = "") const {
-          std::cout << (name_.empty() ? "" : name_ + " ") << msg
-                    << " [TimeCost]: " << elapsedMs() << " ms." << std::endl;
+      double print(const std::string& msg = " ") const {
+          std::cout << " [TimeCost]: " << (name_.empty() ? " " : name_ + " ") << msg
+                    << " " << elapsedMs() << " ms." << std::endl;
+          return elapsedMs();
       }
   private:
       std::chrono::steady_clock::time_point start_;
       std::string name_;
   };
-}  // namespace costmap_2d
+}  // namespace DynaVoro

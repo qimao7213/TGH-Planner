@@ -79,6 +79,7 @@ private:
   ros::Publisher search_tree_pub_; //9
   ros::Publisher perception_info_pub_; //10
   ros::Publisher topo_path_pub_;   // 11
+  ros::Publisher voronoi_topo_path_pub_;  // 12
   vector<ros::Publisher> pubs_;  //
 
   int last_topo_path1_num_;
@@ -86,6 +87,7 @@ private:
   int last_bspline_phase1_num_;
   int last_bspline_phase2_num_;
   int last_frontier_num_;
+  int last_topo_voronoi_path_num_;
   std_msgs::ColorRGBA color_red_, color_green_, color_blue_, color_pink_, color_yellow_;
 public:
   PlanningVisualization(/* args */) {}
@@ -127,6 +129,8 @@ public:
   void drawTopoPathsPhase1(vector<vector<Eigen::Vector3d>>& paths, double line_width);
   void drawTopoPathsPhase2(vector<vector<Eigen::Vector3d>>& paths, double line_width);
   void drawTopoSampleArea(const vector<Eigen::Vector3d>& corners, double line_width, const Eigen::Vector4d& color);
+  void drawTopoVoronoiPaths(vector<vector<Eigen::Vector3d>>& paths, double line_width);
+
 
   void drawGoal(Eigen::Vector3d goal, double resolution, const Eigen::Vector4d& color, int id = 0);
   // 看看这个是怎么使用的

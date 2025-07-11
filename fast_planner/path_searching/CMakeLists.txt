@@ -30,7 +30,7 @@ include_directories(
     ${PCL_INCLUDE_DIRS}
 )
 
-set(CMAKE_CXX_FLAGS "-std=c++14")
+set(CMAKE_CXX_FLAGS "-std=c++17")
 set(CMAKE_BUILD_TYPE "Release")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")

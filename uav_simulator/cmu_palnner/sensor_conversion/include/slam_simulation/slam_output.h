@@ -30,6 +30,7 @@ public:
     ros::Publisher dwz_cloud_pub;
     ros::Subscriber odom_sub;
     ros::Subscriber scan_sub;
+    ros::Subscriber odom_tf_sub;
     ros::Timer global_down_timer;
 
     tf::StampedTransform transform;
@@ -41,22 +42,28 @@ public:
     typedef std::shared_ptr<message_filters::Synchronizer<SyncPolicyLocalCloudOdom>> SynchronizerLocalCloudOdom;
     SynchronizerLocalCloudOdom sync_local_cloud_odom_;
 
-    std::string frame_id;
+    std::string slam_frame_id;
     std::string child_frame_id;
-
+    std::string lidar_frame, sensor_odom_topic;
+    std::string base_frame = "base_link";
+    std::string world_frame_id = "world"; // 全局坐标系
     bool is_get_first;
-
-    tf::Transform T_B_W , T_B_L;
-
+    bool is_sim = false; // 是否为仿真环境，如果是的话需要将odom转换为tf发布
+    Eigen::Isometry3d T_B_L, T_W_SLAM; // SLAM初始坐标系在World下的转换
     std::vector<tf::StampedTransform> ST_B_Bi_vec;
     double vec_length;
+    double offset_gazebo_world_x = 0.0;
+    double offset_gazebo_world_y = 0.0;
+    double offset_world_to_camerainit_x = 0.0;
+    double offset_world_to_camerainit_y = 0.0;
 
     pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
-    float down_voxel_size;
+    double down_voxel_size;
 
     SlamOutput(const ros::NodeHandle &nh, const ros::NodeHandle &nh_private);
 
     void pointCloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr& point_cloud,const nav_msgs::OdometryConstPtr& input);
+    void odomTfCallback(const nav_msgs::OdometryConstPtr& odom_msg);
 };
 
 

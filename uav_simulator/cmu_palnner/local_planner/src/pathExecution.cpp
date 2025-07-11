@@ -13,8 +13,8 @@
 class LookAheadWaypointNode {
 public:
     LookAheadWaypointNode(ros::NodeHandle& nh)
-        : nh_(nh), lookahead_distance_(1.0) {
-        odom_sub_ = nh_.subscribe("/car/odom", 1, &LookAheadWaypointNode::odomCallback, this);
+        : nh_(nh), lookahead_distance_(2.0) {
+        odom_sub_ = nh_.subscribe("/car_odom", 1, &LookAheadWaypointNode::odomCallback, this);
         path_sub_ = nh_.subscribe("/voronoi_path_short", 1, &LookAheadWaypointNode::pathCallback, this);
         waypoint_pub_ = nh_.advertise<geometry_msgs::PointStamped>("/path_execution_node/look_ahead_goal", 1);
         marker_pub_ = nh_.advertise<visualization_msgs::Marker>("/path_execution_node/look_ahead_marker", 1);

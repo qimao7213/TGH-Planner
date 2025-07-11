@@ -76,6 +76,7 @@ double joyToCheckObstacleDelay = 5.0;
 double goalClearRange = 0.5;             //当pathCropByGoal为true时，点云距离超过目标点距离+goalClearRange的不被处理
 double goalX = 0;                        //局部goal点
 double goalY = 0;
+bool goalReceive = false;
 
 float joySpeed = 0;
 float joySpeedRaw = 0;
@@ -110,9 +111,10 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr freePaths(new pcl::PointCloud<pcl::PointXYZ
 
 int pathList[pathNum] = {0};
 float endDirPathList[pathNum] = {0};
-int clearPathList[36 * pathNum] = {0};               //会被清除掉的路径信息
-float pathPenaltyList[36 * pathNum] = {0};           //路径惩罚值，里面存放的是路径点经过的点云相对地面的高度
-float clearPathPerGroupScore[36 * groupNum] = {0};   //每组路径的惩罚值
+int clearPathList[36 * pathNum] = {0};               //clear不是指清除，而是指清晰的意思，表示路径点经过的点云相对地面的最高点的高度大于groundHeightThre
+float pathPenaltyList[36 * pathNum] = {0};           //路径惩罚值，里面存放的是路径点经过的点云相对地面的最高点的高度
+float clearPathPerGroupScore[36 * groupNum] = {0};   //每组路径的得分，越大越好
+int   clearPathPerGroupCount[36 * groupNum] = {0};   //每组路径的点数
 std::vector<int> correspondences[gridVoxelNum];
 
 bool newLaserCloud = false;
@@ -154,7 +156,7 @@ void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr& laserCloud2)
     pcl::PointXYZI point;
     laserCloudCrop->clear();
     int laserCloudSize = laserCloud->points.size();
-    for (int i = 0; i < laserCloudSize; i++) {
+    for (int i = 0; i < laserCloudSize; ++i) {
       point = laserCloud->points[i];
 
       float pointX = point.x;
@@ -187,7 +189,7 @@ void terrainCloudHandler(const sensor_msgs::PointCloud2ConstPtr& terrainCloud2)
     pcl::PointXYZI point;
     terrainCloudCrop->clear();
     int terrainCloudSize = terrainCloud->points.size();
-    for (int i = 0; i < terrainCloudSize; i++) {
+    for (int i = 0; i < terrainCloudSize; ++i) {
       point = terrainCloud->points[i];
 
       float pointX = point.x;
@@ -245,11 +247,13 @@ void goalHandler(const geometry_msgs::PointStamped::ConstPtr& goal)
 {
   goalX = goal->point.x;
   goalY = goal->point.y;
+  goalReceive = true;
 }
 void  rviz_goalHandler(const geometry_msgs::PoseStamped::ConstPtr& goal)
 {
   goalX = goal->pose.position.x;
   goalY = goal->pose.position.y;
+  goalReceive = true;
 }
 // 可以通过这个速度值来调整range和scale，但是好像没有node发布。
 // 那rviz里面看到的range调整了是怎么来的？
@@ -279,7 +283,7 @@ void boundaryHandler(const geometry_msgs::PolygonStamped::ConstPtr& boundary)
     point2.z = boundary->polygon.points[0].z;
   }
 
-  for (int i = 0; i < boundarySize; i++) {
+  for (int i = 0; i < boundarySize; ++i) {
     point1 = point2;
 
     point2.x = boundary->polygon.points[i].x;
@@ -298,7 +302,7 @@ void boundaryHandler(const geometry_msgs::PolygonStamped::ConstPtr& boundary)
         point.z = 0;
         point.intensity = 100.0;
 
-        for (int j = 0; j < pointPerPathThre; j++) {
+        for (int j = 0; j < pointPerPathThre; ++j) {
           boundaryCloud->push_back(point);
         }
       }
@@ -312,7 +316,7 @@ void addedObstaclesHandler(const sensor_msgs::PointCloud2ConstPtr& addedObstacle
   pcl::fromROSMsg(*addedObstacles2, *addedObstacles);
 
   int addedObstaclesSize = addedObstacles->points.size();
-  for (int i = 0; i < addedObstaclesSize; i++) {
+  for (int i = 0; i < addedObstaclesSize; ++i) {
     addedObstacles->points[i].intensity = 200.0;
   }
 }
@@ -367,7 +371,7 @@ void readStartPaths()
 
   pcl::PointXYZ point;
   int val1, val2, val3, val4, groupID;
-  for (int i = 0; i < pointNum; i++) {
+  for (int i = 0; i < pointNum; ++i) {
     val1 = fscanf(filePtr, "%f", &point.x);
     val2 = fscanf(filePtr, "%f", &point.y);
     val3 = fscanf(filePtr, "%f", &point.z);
@@ -403,7 +407,7 @@ void readPaths()
   int pointSkipNum = 30;
   int pointSkipCount = 0;
   int val1, val2, val3, val4, val5, pathID;
-  for (int i = 0; i < pointNum; i++) {
+  for (int i = 0; i < pointNum; ++i) {
     val1 = fscanf(filePtr, "%f", &point.x);
     val2 = fscanf(filePtr, "%f", &point.y);
     val3 = fscanf(filePtr, "%f", &point.z);
@@ -445,7 +449,7 @@ void readPathList()
 
   int val1, val2, val3, val4, val5, pathID, groupID;
   float endX, endY, endZ;
-  for (int i = 0; i < pathNum; i++) {
+  for (int i = 0; i < pathNum; ++i) {
     val1 = fscanf(filePtr, "%f", &endX);
     val2 = fscanf(filePtr, "%f", &endY);
     val3 = fscanf(filePtr, "%f", &endZ);
@@ -477,7 +481,7 @@ void readCorrespondences()
   }
 
   int val1, gridVoxelID, pathID;
-  for (int i = 0; i < gridVoxelNum; i++) {
+  for (int i = 0; i < gridVoxelNum; ++i) {
     val1 = fscanf(filePtr, "%d", &gridVoxelID);
     if (val1 != 1) {
       printf ("\nError reading input files, exit.\n\n");
@@ -565,7 +569,7 @@ int main(int argc, char** argv)
 
   ros::Subscriber subGoal = nh.subscribe<geometry_msgs::PointStamped> ("/way_point", 5, goalHandler);
 
-  ros::Subscriber sub_rviz_Goal = nh.subscribe<geometry_msgs::PoseStamped> ("/rviz_goal", 5, rviz_goalHandler);
+  // ros::Subscriber sub_rviz_Goal = nh.subscribe<geometry_msgs::PoseStamped> ("/rviz_goal", 5, rviz_goalHandler);
 
   ros::Subscriber subSpeed = nh.subscribe<std_msgs::Float32> ("/speed", 5, speedHandler);
 
@@ -576,6 +580,7 @@ int main(int argc, char** argv)
   ros::Subscriber subCheckObstacle = nh.subscribe<std_msgs::Bool> ("/check_obstacle", 5, checkObstacleHandler);
 
   ros::Publisher pubPath = nh.advertise<nav_msgs::Path> ("/path", 5);
+  ros::Publisher pubPlannerCloud = nh.advertise<sensor_msgs::PointCloud2> ("/terrain_plannerCloud", 10);
   nav_msgs::Path path; //选中的哪个group里面第1阶段的那部分路径
 
   #if PLOTPATHSET == 1
@@ -591,18 +596,18 @@ int main(int argc, char** argv)
     else if (joySpeed > 1.0) joySpeed = 1.0;
   }
 
-  for (int i = 0; i < laserCloudStackNum; i++) {
+  for (int i = 0; i < laserCloudStackNum; ++i) {
     laserCloudStack[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
   }
-  for (int i = 0; i < groupNum; i++) {
+  for (int i = 0; i < groupNum; ++i) {
     startPaths[i].reset(new pcl::PointCloud<pcl::PointXYZ>());
   }
   #if PLOTPATHSET == 1
-  for (int i = 0; i < pathNum; i++) {
+  for (int i = 0; i < pathNum; ++i) {
     paths[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
   }
   #endif
-  for (int i = 0; i < gridVoxelNum; i++) {
+  for (int i = 0; i < gridVoxelNum; ++i) {
     correspondences[i].resize(0);
   }
 
@@ -622,7 +627,11 @@ int main(int argc, char** argv)
   bool status = ros::ok();
   while (status) {
     ros::spinOnce();
-
+    if (!goalReceive) {
+        rate.sleep();   // 保证每次循环都sleep，避免CPU占用高
+        status = ros::ok();
+        continue;
+    }
     if (newLaserCloud || newTerrainCloud) {
       if (newLaserCloud) {
         newLaserCloud = false;
@@ -632,7 +641,7 @@ int main(int argc, char** argv)
         laserCloudCount = (laserCloudCount + 1) % laserCloudStackNum;
 
         plannerCloud->clear();
-        for (int i = 0; i < laserCloudStackNum; i++) {
+        for (int i = 0; i < laserCloudStackNum; ++i) {
           *plannerCloud += *laserCloudStack[i];
         }
       }
@@ -655,7 +664,7 @@ int main(int argc, char** argv)
       plannerCloudCrop->clear();
       int plannerCloudSize = plannerCloud->points.size();
       // 将点云从world坐标系转换到local坐标系
-      for (int i = 0; i < plannerCloudSize; i++) {
+      for (int i = 0; i < plannerCloudSize; ++i) {
         float pointX1 = plannerCloud->points[i].x - vehicleX;
         float pointY1 = plannerCloud->points[i].y - vehicleY;
         float pointZ1 = plannerCloud->points[i].z - vehicleZ;
@@ -672,7 +681,7 @@ int main(int argc, char** argv)
       }
 
       int boundaryCloudSize = boundaryCloud->points.size();
-      for (int i = 0; i < boundaryCloudSize; i++) {
+      for (int i = 0; i < boundaryCloudSize; ++i) {
         point.x = ((boundaryCloud->points[i].x - vehicleX) * cosVehicleYaw
                 + (boundaryCloud->points[i].y - vehicleY) * sinVehicleYaw);
         point.y = (-(boundaryCloud->points[i].x - vehicleX) * sinVehicleYaw
@@ -687,7 +696,7 @@ int main(int argc, char** argv)
       }
 
       int addedObstaclesSize = addedObstacles->points.size();
-      for (int i = 0; i < addedObstaclesSize; i++) {
+      for (int i = 0; i < addedObstaclesSize; ++i) {
         point.x = ((addedObstacles->points[i].x - vehicleX) * cosVehicleYaw
                 + (addedObstacles->points[i].y - vehicleY) * sinVehicleYaw);
         point.y = (-(addedObstacles->points[i].x - vehicleX) * sinVehicleYaw
@@ -731,12 +740,13 @@ int main(int argc, char** argv)
       // clearPathPerGroupScore里面7*36个数据，7代表7组路径，是车辆运动的初始方向，因此非常重要
       // 对三个阶段的路径集合，判断可通行性；但是对于7组路径，是需要进行评分来选出最优的一组，然后再从这一组+朝向里面选出最优的一条路径
       while (pathScale >= minPathScale && pathRange >= minPathRange) {
-        for (int i = 0; i < 36 * pathNum; i++) {
+        for (int i = 0; i < 36 * pathNum; ++i) {
           clearPathList[i] = 0;
           pathPenaltyList[i] = 0;
         }
-        for (int i = 0; i < 36 * groupNum; i++) {
+        for (int i = 0; i < 36 * groupNum; ++i) {
           clearPathPerGroupScore[i] = 0;
+          clearPathPerGroupCount[i] = 0;
         }
 
         float minObsAngCW = -180.0;
@@ -745,10 +755,10 @@ int main(int argc, char** argv)
         float angOffset = atan2(vehicleWidth, vehicleLength) * 180.0 / PI;
         int plannerCloudCropSize = plannerCloudCrop->points.size();
         // 检查所有的点云点
-        for (int i = 0; i < plannerCloudCropSize; i++) {
+        for (int i = 0; i < plannerCloudCropSize; ++i) {
           float x = plannerCloudCrop->points[i].x / pathScale;
           float y = plannerCloudCrop->points[i].y / pathScale;
-          float h = plannerCloudCrop->points[i].intensity;
+          float h = plannerCloudCrop->points[i].intensity;   // 障碍物点云在base_link下的z值
           float dis = sqrt(x * x + y * y);
 
           if (dis < pathRange / pathScale && (dis <= (relativeGoalDis + goalClearRange) / pathScale || !pathCropByGoal) && checkObstacle) {
@@ -777,7 +787,7 @@ int main(int argc, char** argv)
               if (indX >= 0 && indX < gridVoxelNumX && indY >= 0 && indY < gridVoxelNumY) {
                 int ind = gridVoxelNumY * indX + indY;
                 int blockedPathByVoxelNum = correspondences[ind].size();
-                for (int j = 0; j < blockedPathByVoxelNum; j++) {
+                for (int j = 0; j < blockedPathByVoxelNum; ++j) {
                   if (h > obstacleHeightThre || !useTerrainAnalysis) {
                     clearPathList[pathNum * rotDir + correspondences[ind][j]]++;
                   } else {
@@ -807,7 +817,7 @@ int main(int argc, char** argv)
         if (minObsAngCCW < 0) minObsAngCCW = 0;
 
         // 对每条路径进行评分
-        for (int i = 0; i < 36 * pathNum; i++) {
+        for (int i = 0; i < 36 * pathNum; ++i) {
           int rotDir = int(i / pathNum);
           float angDiff = fabs(joyDir - (10.0 * rotDir - 180.0));
           if (angDiff > 180.0) {
@@ -819,7 +829,7 @@ int main(int argc, char** argv)
           }
 
           if (clearPathList[i] < pointPerPathThre) {
-            float penaltyScore = 1.0 - pathPenaltyList[i] / costHeightThre;
+            float penaltyScore = 1.0 - pathPenaltyList[i] / costHeightThre; // 这个值越小，代表该路径上的最高点越高，得分越低
             if (penaltyScore < costScore) penaltyScore = costScore;
 
             float dirDiff = fabs(joyDir - endDirPathList[i % pathNum] - (10.0 * rotDir - 180.0));
@@ -830,19 +840,24 @@ int main(int argc, char** argv)
               dirDiff = 360.0 - dirDiff;
             }
 
-            float rotDirW;
+            float rotDirW;  //代表和当前方向的接近程度？越大越正？
             if (rotDir < 18) rotDirW = fabs(fabs(rotDir - 9) + 1);
             else rotDirW = fabs(fabs(rotDir - 27) + 1);
             float score = (1 - sqrt(sqrt(dirWeight * dirDiff))) * rotDirW * rotDirW * rotDirW * rotDirW * penaltyScore;
             if (score > 0) {
               clearPathPerGroupScore[groupNum * rotDir + pathList[i % pathNum]] += score;
+              clearPathPerGroupCount[groupNum * rotDir + pathList[i % pathNum]]++;
             }
           }
         }
+        // for (int i = 0; i < 36 * groupNum; ++i) {
+        //   if (clearPathPerGroupCount[i] > 0)
+        //     clearPathPerGroupScore[i] /= clearPathPerGroupCount[i];
 
+        // }
         float maxScore = 0;
         int selectedGroupID = -1;
-        for (int i = 0; i < 36 * groupNum; i++) {
+        for (int i = 0; i < 36 * groupNum; ++i) {
           int rotDir = int(i / groupNum);
           float rotAng = (10.0 * rotDir - 180.0) * PI / 180;
           float rotDeg = 10.0 * rotDir;
@@ -861,7 +876,7 @@ int main(int argc, char** argv)
           selectedGroupID = selectedGroupID % groupNum;
           int selectedPathLength = startPaths[selectedGroupID]->points.size();
           path.poses.resize(selectedPathLength);
-          for (int i = 0; i < selectedPathLength; i++) {
+          for (int i = 0; i < selectedPathLength; ++i) {
             float x = startPaths[selectedGroupID]->points[i].x;
             float y = startPaths[selectedGroupID]->points[i].y;
             float z = startPaths[selectedGroupID]->points[i].z;
@@ -883,7 +898,7 @@ int main(int argc, char** argv)
 
           #if PLOTPATHSET == 1
           freePaths->clear();
-          for (int i = 0; i < 36 * pathNum; i++) {
+          for (int i = 0; i < 36 * pathNum; ++i) {
             int rotDir = int(i / pathNum);
             float rotAng = (10.0 * rotDir - 180.0) * PI / 180;
             float rotDeg = 10.0 * rotDir;
@@ -896,12 +911,12 @@ int main(int argc, char** argv)
                 ((10.0 * rotDir > dirThre && 360.0 - 10.0 * rotDir > dirThre) && fabs(joyDir) > 90.0 && dirToVehicle) ||
                 !((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) ||
                 (rotDeg > minObsAngCW && rotDeg < minObsAngCCW && twoWayDrive) || !checkRotObstacle)) {
-              // continue;
+              continue;
             }
 
             if (clearPathList[i] < pointPerPathThre) {
               int freePathLength = paths[i % pathNum]->points.size();
-              for (int j = 0; j < freePathLength; j++) {
+              for (int j = 0; j < freePathLength; ++j) {
                 point = paths[i % pathNum]->points[j];
 
                 float x = point.x;
@@ -963,11 +978,11 @@ int main(int argc, char** argv)
         #endif
       }
 
-      /*sensor_msgs::PointCloud2 plannerCloud2;
-      pcl::toROSMsg(*plannerCloudCrop, plannerCloud2);
+      sensor_msgs::PointCloud2 plannerCloud2;
+      pcl::toROSMsg(*plannerCloud, plannerCloud2);
       plannerCloud2.header.stamp = ros::Time().fromSec(odomTime);
-      plannerCloud2.header.frame_id = "base_link";
-      pubLaserCloud.publish(plannerCloud2);*/
+      plannerCloud2.header.frame_id = "world";
+      pubPlannerCloud.publish(plannerCloud2);
     }
 
     status = ros::ok();

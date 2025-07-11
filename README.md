@@ -36,7 +36,7 @@ ros-noetic-interactive-marker-twist-server \
 libgoogle-glog-dev \
 libignition-common3-graphics-dev \
 libignition-common3-profiler-dev \
-python3-tk 
+python3-tk \
 xterm
 ```
 Download [gazebo_models](https://github.com/osrf/gazebo_models) in advance, and put them in directory `~/.gazebo/models`.

@@ -31,7 +31,7 @@ include_directories(
 
 link_directories(${PCL_LIBRARY_DIRS})
 
-set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS} -O3 -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS} -O3 -Wall")
 
 add_library( traj_utils
     src/planning_visualization.cpp 

@@ -7,7 +7,7 @@
   <arg name="max_vel"/>
   <arg name="max_acc"/>
   <arg name="ddelta_max" value="2.5"/> 
-  <arg name="car_cmd" value="/car/cmd"/>
+  <arg name="car_cmd" value="/car_vel"/>
   <arg name="odometry_topic"/>
 
   <!-- <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">

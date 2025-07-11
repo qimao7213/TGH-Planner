@@ -17,7 +17,7 @@
   <!-- zigzag -25, -24, phi:0 -->
   <!-- local plan 0 0 0 , phi: 90-->
   <!-- perception: 1, -6, phi: 90 -->
-  <arg name="init_x" value="-25"/>
+  <arg name="init_x" value="-15"/>
   <arg name="init_y" value="0"/>
   <arg name="init_z" value="0.1"/> 
   <!-- 对init_z解释：对于二维的情况，z轴是不改变的。car的位姿用于设置gazebo里面model的位姿，对应的是base_link，对应的是机器人和地面的接触部分 -->
@@ -38,7 +38,7 @@
   <arg name="odometry_topic"/>
   <arg name="FilePath"/>
 
-  <node pkg ="map_generator" name ="random_forest" type ="random_forest" output = "screen">    
+  <!-- <node pkg ="map_generator" name ="random_forest" type ="random_forest" output = "screen">    
     <remap from="~odometry"   to="$(arg odometry_topic)"/>    
     <param name="init_state_x"   value="$(arg init_x)"/>
     <param name="init_state_y"   value="$(arg init_y)"/>
@@ -65,10 +65,10 @@
     <param name="map/u_wall_num" value="$(arg u_w_num)"/> 
     <param name="sensing/radius" value="5.0"/>        
     <param name="sensing/rate"   value="10.0"/>        
-  </node>
+  </node> -->
 
   <!-- car simulator -->
-  <group if="$(arg only2D)">
+  <!-- <group if="$(arg only2D)">
     <node pkg="nodelet" type="nodelet" name="car_simulator" args="standalone car_simulator/Nodelet" output="screen">
       <param name="simulator/init_state_x" value="$(arg init_x)"/>
       <param name="simulator/init_state_y" value="$(arg init_y)"/>
@@ -80,10 +80,9 @@
 
       <remap from="~odom_test" to="/car/odom"/>
       <remap from="~cmd"  to="$(arg car_cmd)"/>
-      <!-- <remap from="/cmd_vel" to="/jackal_velocity_controller/cmd_vel"/> -->
+      <remap from="/cmd_vel" to="/jackal_velocity_controller/cmd_vel"/>
     </node>
-
-  </group>
+  </group> -->
 
   <group if="$(arg only2D_not)">
     <node pkg="so3_quadrotor_simulator" type="quadrotor_simulator_so3" name="quadrotor_simulator_so3" output="screen">
@@ -113,15 +112,15 @@
     </node>     
   </group>
  
-  <node pkg="so3_disturbance_generator" name="so3_disturbance_generator" type="so3_disturbance_generator" output="screen">
+  <!-- <node pkg="so3_disturbance_generator" name="so3_disturbance_generator" type="so3_disturbance_generator" output="screen">
         <remap from="~odom" to="$(arg used_odom_name)"/>             
         <remap from="~noisy_odom" to="/state_ukf/odom"/>          
         <remap from="~correction" to="/visual_slam/correction"/>   
         <remap from="~force_disturbance" to="force_disturbance"/>        
         <remap from="~moment_disturbance" to="moment_disturbance"/>            
-  </node> 
+  </node>  -->
  
-  <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen">
+  <!-- <node pkg="odom_visualization" name="odom_visualization" type="odom_visualization" output="screen">
         <remap from="~odom" to="$(arg used_odom_name)"/>
         <param name="color/a" value="1.0"/>    
         <param name="color/r" value="0.0"/>        
@@ -129,9 +128,9 @@
         <param name="color/b" value="1.0"/>       
         <param name="covariance_scale" value="100.0"/>       
         <param name="robot_scale" value="1.0"/>
-  </node>
+  </node> -->
 
-  <node pkg="local_sensing_node" type="pcl_render_node" name="pcl_render_node" output="screen">
+  <!-- <node pkg="local_sensing_node" type="pcl_render_node" name="pcl_render_node" output="screen">
         <rosparam command="load" file="$(find local_sensing_node)/params/camera.yaml" />
         <param name="sensing_horizon"  value="7.0" />
         <param name="sensing_rate"     value="30.0"/>
@@ -145,11 +144,11 @@
         <remap from="~global_map" to="/map_generator/global_cloud"/>
         <remap from="~odometry"   to="$(arg odometry_topic)"/>
         <remap from="~global_map_change" to="/map_generator/global_map_change"/>
-  </node>
+  </node> -->
 
   <group if="$(arg use_gazebo)">
     <include file="$(find gazebo_simulator)/launch/gazebo_sim.launch">
-      <arg name="odom_name" value="$(arg used_odom_name)"/>
+      <!-- <arg name="odom_name" value="$(arg used_odom_name)"/> -->
     </include>
   </group>
 

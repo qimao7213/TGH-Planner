@@ -86,6 +86,7 @@
         "any": "cpp",
         "format": "cpp",
         "*.bk": "cpp",
-        "*.bk2": "cpp"
+        "*.bk2": "cpp",
+        "shared_mutex": "cpp"
     }
 }

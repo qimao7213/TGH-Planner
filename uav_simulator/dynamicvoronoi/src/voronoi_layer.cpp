@@ -1,13 +1,16 @@
 
 #include "dvr/voronoi_layer.h"
 // #define VERBOSE
+bool debug_flag_ = false;
+
 namespace DynaVoro
 {
 VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
 {
   resolution_ = nh.param("/map_resolution", 0.1);
-  clearance_low_ = nh.param("/obs_clearance", 0.3);
-  clearance_high_ = nh.param("/obs_clearance_high", 3.0);
+  clearance_low_ = nh.param("/obs_clearance", 0.3);          //小于这个值的维诺点不要
+  clearance_high_ = nh.param("/obs_clearance_high", 3.0);    //大于这个值的维诺点不要
+  visualization_.reset(new fast_planner::PlanningVisualization(nh));
   clearance_low_thr_ = clearance_low_ * clearance_low_ / resolution_ / resolution_;
   clearance_high_thr_ = clearance_high_ * clearance_high_ / resolution_ / resolution_;
 
@@ -17,10 +20,11 @@ VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
   gvg_planner_->init(gvg_);
 
   costmap_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/sdf_map/occupancy_2D", 1, &VoronoiLayer::costmapCB, this);
-  odometry_sub_ = nh.subscribe<nav_msgs::Odometry>("/car/odom", 1, &VoronoiLayer::odometryCallback, this);
+  odometry_sub_ = nh.subscribe<nav_msgs::Odometry>("/car_odom", 1, &VoronoiLayer::odometryCallback, this);
   rviz_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &VoronoiLayer::rvizGoalCallback, this);
   
   voronoi_grid_pub_ = nh.advertise<nav_msgs::OccupancyGrid>("/voronoi_grid", 10);
+  voronoi_grid_origin_pub_ = nh.advertise<nav_msgs::OccupancyGrid>("/voronoi_grid_origin", 10);
   voronoi_occupy_pub_ = nh.advertise<nav_msgs::OccupancyGrid>("/voronoi_grid_occupy", 10);
   distance_cloud_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/voronoi_esdf", 10);
   gvg_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/voronoi_gvg_markers", 10);
@@ -30,8 +34,8 @@ VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
   path_pub_test_2_ = nh.advertise<nav_msgs::Path>("/voronoi_path_test2", 10);
   path_pub_test_3_ = nh.advertise<nav_msgs::Path>("/voronoi_path_test3", 10);
 
-  plan_timer_ = nh.createTimer(ros::Duration(0.5), &VoronoiLayer::planTimerCallback, this);
-  voronoi_update_timer_ = nh.createTimer(ros::Duration(1), &VoronoiLayer::voronoiUpdateTimerCallback, this);
+  plan_timer_ = nh.createTimer(ros::Duration(0.2), &VoronoiLayer::planTimerCallback, this);
+  voronoi_update_timer_ = nh.createTimer(ros::Duration(2), &VoronoiLayer::voronoiUpdateTimerCallback, this);
 }
 
 
@@ -93,9 +97,9 @@ void VoronoiLayer::costmapCB(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
   }
 
   std::vector<IntPoint> new_free_cells, new_occupied_cells;
-  for (unsigned int j = 1; j < size_y - 2; ++j)
-  {
-    for (unsigned int i = 1; i < size_x - 2; ++i)
+  for (unsigned int i = 1; i < size_x - 2; ++i)
+  {  
+    for (unsigned int j = 1; j < size_y - 2; ++j)
     {
       int index = j * size_x + i;
       if (voronoi_.isOccupied(i, j) && map_msg->data[index] != -1)
@@ -110,7 +114,10 @@ void VoronoiLayer::costmapCB(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
       }
     }
   }
-
+  if (new_free_cells.empty() && new_occupied_cells.empty())
+  {
+    return; // 没有变化
+  }
   for (size_t i = 0; i < new_free_cells.size(); ++i)
   {
     voronoi_.clearCell(new_free_cells[i].x, new_free_cells[i].y);
@@ -133,6 +140,7 @@ void VoronoiLayer::costmapCB(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
   #endif
   timer.reset();
   gvg_->createGraph(voronoi_);
+  gvg_updated_ = true;
   #ifdef VERBOSE
   timer.print("GVG Create"); 
   #endif
@@ -217,6 +225,38 @@ void VoronoiLayer::costmapCB(const nav_msgs::OccupancyGrid::ConstPtr& map_msg)
   // cv::Mat esdf_img = cv::Mat::zeros(size_y, size_x, CV_8UC3);
   // drawESDFToMat(esdf_img);       
   // int debug = 0;
+
+  // 将占据地图、voronoi的is_voronoi和gvg里面的is_voronoi都存放下来
+  // cv::Mat voronoiMix = cv::Mat::zeros(size_y, size_x, CV_8UC3);
+  // static int idx = 0;
+  // for (int y = 0; y < size_y; ++y)
+  // {
+  //   for (int x = 0; x < size_x; ++x)
+  //   {
+  //     if (voronoi_.isVoronoi(x, y))
+  //     {
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[0] = 0;   // 蓝色通道
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[1] = 0;   // 绿色通道
+  //       voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[2] = 255;   // 红色通道
+  //     }
+  //     if (gvg_->isVoronoi(x, y))
+  //     {
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[0] = 0;   // 蓝色通道
+  //       voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[1] = 255;   // 绿色通道
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[2] = 0;   // 红色通道
+  //     }      
+  //     if (voronoi_.isOccupied(x, y))
+  //     {
+  //       voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[0] = 255;   // 蓝色通道
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[1] = 0;   // 绿色通道
+  //       // voronoiMix.at<cv::Vec3b>(size_y - y - 1, x)[2] = 0;   // 红色通道
+  //     }
+  //   }
+  // } 
+  // cv::imwrite("/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/uav_simulator/dynamicvoronoi/data/" + std::to_string(idx) + ".png", voronoiMix);
+  // ++idx;
+
+
   // ------------- Drawing End ----------------------
 
   publishGVG(gvg_->getGraphs());
@@ -242,23 +282,26 @@ void VoronoiLayer::publishVoronoiGrid()
 
   grid.data.resize(last_size_x_ * last_size_y_, 0);
   grid_occupy = grid;
+  // SimpleTimer timer;
+  // timer.reset();
   for (unsigned int x = 0; x < last_size_x_; ++x)
   {
     for (unsigned int y = 0; y < last_size_y_; ++y)
     {
       // XX
       // if (voronoi_.isVoronoiAlternative(x, y))
-      // if (voronoi_.isVoronoiWithDisThr(x, y, clearance_low_thr_, clearance_high_thr_))
-      // {
-      //   grid.data[x + y * last_size_x_] = 128;
-      // }
+      if (voronoi_.isVoronoi(x, y))
+      {
+        grid.data[x + y * last_size_x_] = 128;
+      }
       if (voronoi_.isOccupied(x, y))
       {
         grid_occupy.data[x + y * last_size_x_] = -1;
       }
     }
   }
-  // voronoi_grid_pub_.publish(grid);
+  // timer.print("XXXXXXXXXXXXXXXXXXXXXXXX");
+  voronoi_grid_origin_pub_.publish(grid);
   voronoi_occupy_pub_.publish(grid_occupy);
 }
 
@@ -278,7 +321,7 @@ void VoronoiLayer::publishGVG(const std::vector<std::unordered_map<IntPoint, Gra
   
     grid.info.origin.position.x = -0.5 * last_size_x_ * resolution_;
     grid.info.origin.position.y = -0.5 * last_size_y_ * resolution_;
-    grid.info.origin.position.z = 0.1;
+    grid.info.origin.position.z = -0.1;
     grid.info.origin.orientation.w = 1.0;
   
     grid.data.resize(last_size_x_ * last_size_y_, 0);
@@ -338,7 +381,7 @@ void VoronoiLayer::publishGVG(const std::vector<std::unordered_map<IntPoint, Gra
             for (int i = 0; i < paths.size(); ++i)
             {
               const auto& path = paths[i];
-              if(node_ptr->neighbors[i]->type == GraphNode::Weak)
+              if(node_ptr->neighbors[i].lock()->type == GraphNode::Weak)
               {
                 // continue; // 不发布弱节点的路径
               }
@@ -406,9 +449,71 @@ void VoronoiLayer::publishDistanceCloud()
   distance_cloud_pub_.publish(cloud_msg);
 }
 
-bool VoronoiLayer::plan(const Eigen::Vector3d& start, const Eigen::Vector3d& goal)
+
+// 返回As中距离B最近的K个点
+std::vector<IntPoint> findKNearestPoints( const std::vector<IntPoint>& As, 
+                      const IntPoint& B, int K)
 {
-  int KdNeighborNum = 5; // KD-Tree最近邻搜索的数量
+    // 计算所有A到B的距离
+    std::vector<std::pair<double, int>> dist_idx;
+    for (int i = 0; i < As.size(); ++i) {
+        double dist = std::hypot(As[i].x - B.x, As[i].y - B.y);
+        dist_idx.emplace_back(dist, i);
+    }
+    // 排序
+    std::sort(dist_idx.begin(), dist_idx.end());
+    // 取前K个
+    std::vector<IntPoint> result;
+    for (int k = 0; k < std::min(K, (int)dist_idx.size()); ++k) {
+        result.push_back(As[dist_idx[k].second]);
+    }
+    return result;
+}
+
+
+double pathLength(const vector<Eigen::Vector2d>& path) {
+  double length = 0.0;
+  if (path.size() < 2) return length;
+  for (int i = 0; i < path.size() - 1; ++i) {
+    length += (path[i + 1] - path[i]).norm();
+  }
+  return length;
+}
+double pathLength2(const vector<IntPoint>& path) {
+  double length = 0.0;
+  if (path.size() < 2) return length;
+  for (int i = 0; i < path.size() - 1; ++i) {
+    length += std::hypot(path[i + 1].x - path[i].x, path[i + 1].y - path[i].y);
+  }
+  return length;
+}
+
+bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double start_yaw)
+{
+
+  if ((goal - goal_last_).norm() > 5.0)
+  {
+    last_best_path_.clear();
+    goal_last_ = goal;
+  }
+  // start.x() = 18.7321;
+  // start.y() = -7.11596;
+  // start.z() = 1.25864;
+  // goal.x() = -6.66841;
+  // goal.y() = -4.21227;
+  // goal.z() = 2.32283;
+  // if (!gvg_updated_)
+  // {
+  //   ROS_WARN_STREAM("GVG is not updated, can not plan path."); 
+  //   debug_flag_ = true;
+  //   // return false;
+  // }
+  // else
+  // {
+  //   debug_flag_ = false;
+  // }
+  std::cout << "plan start: " << start.transpose() << ", goal: " << goal.transpose() << std::endl;
+  int KdNeighborNum = 8; // KD-Tree最近邻搜索的数量
   //先将start和goal转换为int类型，在map的坐标系下
   Eigen::Vector2i start_coord, goal_coord;
   start_coord.x() = WorldToMapX(start.x());
@@ -416,163 +521,623 @@ bool VoronoiLayer::plan(const Eigen::Vector3d& start, const Eigen::Vector3d& goa
   goal_coord.x() = WorldToMapX(goal.x());
   goal_coord.y() = WorldToMapY(goal.y());
 
-  auto gvg_graphs = gvg_->getGraphs();
-  pcl::PointCloud<pcl::PointXY>::Ptr node_cloud(new pcl::PointCloud<pcl::PointXY>);
-  pcl::PointXY tmpPoint;
+  Eigen::Vector2d colli_pt, start_pt, goal_pt;
+  start_pt.x() = start_coord.x();
+  start_pt.y() = start_coord.y();
+  goal_pt.x() = goal_coord.x();
+  goal_pt.y() = goal_coord.y();
+  if (lineVisib(start_pt, goal_pt, (clearance_low_ - 0.05) / resolution_, colli_pt)) {
+      publishPath({});
+      publishPath2({start_pt, goal_pt});
+      ROS_WARN_STREAM("Start and goal are visible, return straight line path.");
+      last_best_path_ = discretizePath({start_pt, goal_pt});
+      return true;
+  }
 
+  vector<IntPoint> strong_nodes;
   SimpleTimer timer;
-  //TODO: 这里需要考虑多个图的情况
-  if (gvg_graphs.size() >= 2)
+  gvg_->getStrongNodes(strong_nodes);
+  ROS_WARN_STREAM("There are " << gvg_->getGraphsSize() << " GVG graphs. Strong nodes: " 
+                      << strong_nodes.size());
+  KdNeighborNum = std::min(KdNeighborNum, static_cast<int>(strong_nodes.size()));
+  if (strong_nodes.empty())
   {
-    ROS_WARN_STREAM("There are more than one GVG graphs, only the first one will be used for planning.");
+    publishPath({});
+    publishPath2({start_pt, goal_pt});
+    ROS_WARN_STREAM("There is no graph. Return the stright of start and end.");
   }
-  auto& graph = gvg_graphs[0];
-  std::cout << "graph size: " << graph.size() << std::endl;
-  KdNeighborNum = std::min(KdNeighborNum, static_cast<int>(graph.size()));
-  for (const auto& node_pair : graph)
-  {
-    const auto& node_ptr = node_pair.second;
-    const IntPoint& node_pos = node_ptr->pos;
-    if (node_ptr->type == GraphNode::Strong) 
-    {
-      tmpPoint.x = node_pos.x;
-      tmpPoint.y = node_pos.y;
-      node_cloud->points.emplace_back(tmpPoint);
-    }
-  }
-  if (node_cloud->points.empty())
-  {
-    std::cout << "There is no graph. Return the stright of start and end." << std::endl;
-    nav_msgs::Path path_msg;
-    path_msg.header.frame_id = "world";
-    path_msg.header.stamp = ros::Time::now();
-
-    geometry_msgs::PoseStamped pose;
-    pose.header = path_msg.header;
-    // 将栅格坐标转换为世界坐标
-    pose.pose.position.x = start.x();
-    pose.pose.position.y = start.y();
-    pose.pose.position.z = 0.1;
-    pose.pose.orientation.w = 1.0;
-    path_msg.poses.emplace_back(pose);
-    pose.pose.position.x = goal.x();
-    pose.pose.position.y = goal.y();
-    pose.pose.position.z = 0.1;
-    path_msg.poses.emplace_back(pose);
-    path_pub2_.publish(path_msg);
-    return true;
-  }
-  GvgNodeKdTree_.setInputCloud(node_cloud);
 
   // 先判断起点和终点是否在图中，如果不在，则将其初始化为GraphNode
   // 找到离它num个最近的节点，然后从当前位置raycast到每个节点，如果路径无碰撞，则将最近节点作为其neibor，并修改原graph的结构
   // 如果所有路径都有碰撞，则将最近的那个节点作为StartNode或者GoalNode
-  auto it_start = creatPathNode(
-      start_coord, graph, node_cloud, KdNeighborNum, true);
-  auto it_goal = creatPathNode(
-      goal_coord, graph, node_cloud, KdNeighborNum, false);
+  // TODO：这里不应该只考虑强节点，而是把弱节点也考虑进去。
+  // TODO: 在cmu_local_planner的terrian map里面，应该把小车身后点云去除掉
+  // TODO: 在Indoor这个rosbag上面，最后的时刻不能很好地规划轨迹，看看是什么问题。
+  // TODO: 这个上图的方式可能还是有点问题， 比如在zigzag的时候，会找到一条往后的初始路径，然后short的时候就很不容易成功
+  int start_graph_id = -1;
+  int end_graph_id = -1;
+  bool start_on_graph = false;
+  bool end_on_graph = false;
+  GraphNode::Ptr start_tmp_node_ptr = std::make_shared<GraphNode>();
+  GraphNode::Ptr end_tmp_node_ptr = std::make_shared<GraphNode>();
+  start_tmp_node_ptr->pos = IntPoint(-1, -1);
+  end_tmp_node_ptr->pos = IntPoint(-1, -1);
 
-  #ifdef VERBOSE
-    timer.print("Plan KD-Tree");
-  #endif
+  auto it_start = creatPathNode(
+      start_coord, start_graph_id, start_on_graph, strong_nodes, KdNeighborNum, true, start_tmp_node_ptr);
+  // #ifdef VERBOSE
+    timer.print("Plan KD-Tree Start Node");
+  // #endif
   timer.reset();
-  if(gvg_planner_->serachPath(it_start, it_goal))
+  if (!start_on_graph) 
   {
-    #ifdef VERBOSE
-      timer.print("Plan A* Search"); 
-    #endif
-    auto path_nodes = gvg_planner_->getFullPath();
-    // for (int i = 1; i < path_nodes.size(); ++i)
-    // {
-    //   if (path_nodes[i] == path_nodes[i - 1])
-    //   {
-    //     ROS_WARN_STREAM("Path contains duplicate nodes at index " << i << ": (" 
-    //                     << path_nodes[i].x << ", " << path_nodes[i].y << ")");
-    //   }
-    //   std::cout << "path seg dis: " << std::sqrt(std::pow(path_nodes[i].x - path_nodes[i - 1].x, 2) + 
-    //                std::pow(path_nodes[i].y - path_nodes[i - 1].y, 2)) << std::endl;
-    // }
-    publishPath(path_nodes);
-    timer.reset();
-    vector<Eigen::Vector2d> short_path = shortcutPath(path_nodes, 0, 3);
-    #ifdef VERBOSE
-      timer.print("Plan Short Path");
-    #endif
-    publishPath2(short_path);
-    return true;
+    gvg_->insertNodeToGraph(it_start, start_graph_id);
+    strong_nodes.push_back(it_start->pos);
   }
-  else
+  if (!(start_tmp_node_ptr->pos == IntPoint(-1, -1)))
   {
-    std::cout << "No path found!" << std::endl;
+    gvg_->insertNodeToGraph(start_tmp_node_ptr, start_graph_id);
+    strong_nodes.push_back(start_tmp_node_ptr->pos);
+  }
+   
+  auto it_goal = creatPathNode(
+      goal_coord, end_graph_id, end_on_graph, strong_nodes, KdNeighborNum, false, end_tmp_node_ptr);
+  // #ifdef VERBOSE
+    timer.print("Plan KD-Tree End Node");
+  // #endif
+  timer.reset();  
+
+  ROS_WARN_STREAM("The [start] node connect to graph: " << start_graph_id);
+  ROS_WARN_STREAM("The [ end ] node connect to graph: " << end_graph_id);
+  if(start_graph_id < 0)
+  {
+    ROS_ERROR_STREAM("The start node is not connected to any grpgh, can not find path");
+  }
+  if(end_graph_id < 0)
+  {
+    ROS_ERROR_STREAM("The end node is not connected to any grpgh, can not find path");
+  }
+  if(end_graph_id != start_graph_id)
+  {
+    ROS_ERROR_STREAM("The start and end nodes are connected to different grpgh, can not find path");
+    gvg_updated_ = false;
+    if (!start_on_graph) removeNodeAndConnections(it_start);
+    if (!end_on_graph) removeNodeAndConnections(it_goal);
+    if (!(start_tmp_node_ptr->pos == IntPoint(-1, -1))) removeNodeAndRepairStrongConnection(start_tmp_node_ptr);
+    if (!(end_tmp_node_ptr->pos == IntPoint(-1, -1))) removeNodeAndRepairStrongConnection(end_tmp_node_ptr);
     return false;
   }
+  // timer.reset();
+  // auto topo_path = gvg_planner_->searchTopoPaths(it_start, it_goal, 50);
+  // timer.print("Plan topo paths");
+  // for (const auto& path : topo_path)
+  // {
+  //   publishPath(path);
+  //   ros::Duration(0.03).sleep();
+  //   int debug = 0;
+  // }
+
+  // 在这里进行10次重复规划
+  std::vector<std::vector<Eigen::Vector2d>> topo_paths;
+
+  int path_found_num = 0;
+  int path_search_times = 3;
+  double min_path_length = 10000000;
+  for (int iter = 0; iter < path_search_times; ++iter)
+  {
+    timer.reset();
+    if(gvg_planner_->serachPath(it_start, it_goal))
+    {
+      // #ifdef VERBOSE
+        timer.print("Plan One A* Search"); 
+      // #endif
+      std::vector<IntPoint> path_nodes_sparse = gvg_planner_->getFullPathNodes();
+      std::vector<IntPoint> path_nodes = gvg_planner_->getFullPath();
+      if (path_nodes.size() > 4 * min_path_length && path_nodes.size() > 2 * last_size_x_)
+      {
+        ROS_WARN_STREAM("Break because current's raw path is more than 5 times longer of min_path_length.");
+        break;
+      }      
+      publishPath(path_nodes);
+      timer.reset();
+      vector<Eigen::Vector2d> short_path = shortcutPath(path_nodes, 0, 2);
+      // #ifdef VERBOSE
+        timer.print("Plan Short Path");
+      // #endif
+      publishPath2(short_path);
+      topo_paths.emplace_back(short_path);
+      gvg_updated_ = false;
+      path_found_num ++;
+
+      if (path_nodes_sparse.size() <= 4) {
+          // 不足5个点，直接不再继续规划
+          ROS_WARN("Break because current path has less than 5 path nodes.");
+          break;
+      }
+      double current_path_length = pathLength(short_path);
+      int short_times;
+      if (min_path_length < 20.0) short_times = 4;
+      else if (20.0 <= min_path_length && min_path_length < 80.0) short_times = 3;
+      else if (80.0 <= min_path_length) short_times = 2.2;
+
+      if (current_path_length > short_times * min_path_length)
+      {
+          ROS_WARN_STREAM("Break because current path is more than" << std::to_string(short_times) << "times longer of min_path_length.");
+          break;
+      }
+      min_path_length = std::min(min_path_length, current_path_length);
+
+      path_nodes_sparse = std::vector<IntPoint>(path_nodes_sparse.begin() + 2, path_nodes_sparse.end() - 2);
+      int K_nearest = 5;
+      Eigen::Vector2d check_point_last;
+      check_point_last = short_path[1];
+      for (size_t i = 1; i + 1 < short_path.size(); ++i) {
+          K_nearest = 5;
+          // 距离检查
+          if(i != 1) 
+            if ((short_path[i] - check_point_last).norm() < 5.0) 
+              continue;
+          std::vector<IntPoint> k_nearest_points = findKNearestPoints
+                                (path_nodes_sparse, IntPoint(short_path[i].x(), short_path[i].y()), K_nearest); 
+          K_nearest = k_nearest_points.size();
+          
+          // 标记最近未被移除的path_nodes_sparse
+          for(int j = 0; j < K_nearest; ++j)
+          {
+            auto it_neighbor = gvg_->findNodeInGraphs(k_nearest_points[j]);
+            if (it_neighbor && it_neighbor->type == GraphNode::Strong && !it_neighbor->RemovedByPVS)
+            {
+              it_neighbor->RemovedByPVS = true;
+              // std::cout << "Marking node (" << it_neighbor->pos.x << ", " << it_neighbor->pos.y 
+              //           << ") as removed by shortcut point: " << short_path[i].transpose() << std::endl;
+              break;
+            }
+          }
+          check_point_last = short_path[i];
+      }
+      int debug = 0;
+    }
+    else
+    {
+      std::cout << "No path found!" << std::endl;
+      break;
+      gvg_updated_ = false;
+    }
+  }
+  if (!start_on_graph) removeNodeAndConnections(it_start);
+  if (!end_on_graph) removeNodeAndConnections(it_goal);  
+  if (!(start_tmp_node_ptr->pos == IntPoint(-1, -1))) removeNodeAndRepairStrongConnection(start_tmp_node_ptr);
+  if (!(end_tmp_node_ptr->pos == IntPoint(-1, -1))) removeNodeAndRepairStrongConnection(end_tmp_node_ptr);
+  // 遍历整个graph，将标记为RemovedByXX的恢复
+  for (auto& graph : gvg_->getGraphs())
+  {
+    for(auto& node_pair : graph)
+    {
+      node_pair.second->RemovedByPVS = false;
+    }
+  }
+
+  if (path_found_num == 0)
+  {
+    std::cout << "No path found after 10 iterations." << std::endl;
+    gvg_updated_ = false;
+    return false;
+  }
+  else // 选择最优的一条
+  {
+    std::vector<std::vector<Eigen::Vector3d>> paths_for_publish;
+    std::vector<Eigen::Vector3d> path_for_publish;
+    std::vector<double> path_lengths;
+    std::vector<double> path_angle_diffs;
+    std::vector<double> path_angle_penalties;
+    std::vector<double> path_sim_to_last;
+    std::vector<std::vector<Eigen::Vector2d>> disected_paths = discretizePaths(topo_paths);
+    int idx = -1;
+    for (const auto& path : topo_paths)
+    {
+      ++idx;
+      path_for_publish.clear();
+      for (const auto& pt : path)
+      {   
+        path_for_publish.emplace_back(Eigen::Vector3d(
+                                       (double)coordToWorldNoOffsetX(pt.x()), 
+                                       (double)coordToWorldNoOffsetX(pt.y()), 
+                                       0.1));
+      }
+
+      paths_for_publish.emplace_back(path_for_publish);
+      path_lengths.push_back(pathLength(path));      
+      double path_angle = std::atan2(path[1].y() - path[0].y(), path[1].x() - path[0].x());
+      double angle_diff = path_angle - start_yaw;
+      // 归一化到 [-pi, pi]
+      while (angle_diff > M_PI) angle_diff -= 2 * M_PI;
+      while (angle_diff < -M_PI) angle_diff += 2 * M_PI;
+      path_angle_diffs.emplace_back(std::abs(angle_diff));
+      path_angle_penalties.emplace_back(std::abs(1.0 - std::cos(path_angle_diffs.back())));
+      if (last_best_path_.empty()) 
+      {
+        path_sim_to_last.push_back(0.0); // 如果没有上一个最优路径，则相似度为0
+        continue;
+      }
+      // 计算与上一个最优路径的相似度
+      double sim = 0.0;
+      int check_num = std::min(std::min(disected_paths[idx].size(), last_best_path_.size()), (size_t)(10.0/resolution_));
+      for (int i = 0; i < check_num; ++i)
+      {
+        double dist = (disected_paths[idx][i] - last_best_path_[i]).norm();
+        sim += dist;
+      }
+      path_sim_to_last.push_back(sim / check_num);
+    }
+    visualization_->drawTopoVoronoiPaths(paths_for_publish, 0.2);  
+    std::cout << "Found " << path_found_num << " paths." << std::endl;
+
+    int best_path_idx = 0;
+    double min_penalty = 1000000.0;
+    double w_angle = 0.5;    // 权重，控制角度惩罚和长度惩罚的比例
+    double w_sim_last = 1.0; // 权重，控制与上一个最优路径的相似度的影响
+    for (int i = 0; i < path_found_num; ++i)
+    {
+      double penalty = path_lengths[i] + 
+                       (path_angle_penalties[i]) * std::min(path_lengths[i], (10.0/resolution_)) * w_angle + 
+                        path_sim_to_last[i] * w_sim_last;
+      if (penalty < min_penalty)
+      {
+        min_penalty = penalty;
+        best_path_idx = i;
+      }
+    }
+    last_best_path_ = disected_paths[best_path_idx];
+    std::cout << "Best path index: " << best_path_idx << ", length: " 
+              << path_lengths[best_path_idx] << ", angle diff: " 
+              << path_angle_diffs[best_path_idx] <<  ", sim to last: " 
+              << path_sim_to_last[best_path_idx] << ", penalty: " << std::endl;
+    // 发布最优路径
+    publishPath2(topo_paths[best_path_idx]);
+
+    gvg_updated_ = false;
+    return true;
+  }
+
   int debug = 0;
 }
 
-// TODO：换成A*搜索
+// 1.把所有强节点都找出来
+// 2.对于起点or终点，如果就在图中，则使用该节点；如果不在图中，则新建节点。
+// 3.先在强节点中找出离它最近的K个点NearPts。先尝试直线和NearPts相连，找到一个即可退出；
+// 4.如果都没有找到，则判断在向着NearPts的方向上，是否有Voronoi点，如果有，则连接到Voronoi点
+//   将Voronoi点初始化为GraphNode，并将其和邻居的Strong节点连接起来
+// 5.如果正向连接失败，则尝试反向连接到Voronoi点；
+// 6.最终，要清除在这里建立的节点和邻居连接
 GraphNode::Ptr VoronoiLayer::creatPathNode(
     const Eigen::Vector2i& node_idx,
-    std::unordered_map<IntPoint, GraphNode::Ptr>& graph,
-    pcl::PointCloud<pcl::PointXY>::Ptr node_cloud,
+    int& start_graph_id,
+    bool& node_on_graph,
+    const vector<IntPoint>& node_strong_cloud,
     int KdNeighborNum,
-    bool startNode)
+    bool startNode,
+    GraphNode::Ptr node_tmp_ptr)
 {
   GraphNode::Ptr node_ptr = std::make_shared<GraphNode>();
   node_ptr->pos = IntPoint(node_idx(0), node_idx(1));
-  auto iter_node = graph.find(node_ptr->pos);
-  if (iter_node != graph.end()) {
-      std::cout << "The node on the Graph." << std::endl;
-      node_ptr = iter_node->second; // 如果找到了，就使用原来的节点
-  } else {
-      std::cout << "The node not found in the Graph, creating a new one." << std::endl;  
-      std::vector<int> pointIdxNKNSearch(KdNeighborNum);
-      std::vector<float> pointNKNSquaredDistance(KdNeighborNum);
-      pcl::PointXY queryPoint;
-      queryPoint.x = node_idx(0);
-      queryPoint.y = node_idx(1);
-      GvgNodeKdTree_.nearestKSearch(queryPoint, KdNeighborNum, pointIdxNKNSearch, pointNKNSquaredDistance);
+  auto iter_node = gvg_->findNodeInGraphs(node_ptr->pos, start_graph_id);
+  if (iter_node) {
+      std::cout << "The " << (startNode ? "start" : "end") << " node on the Graph." << std::endl;
+      node_ptr = iter_node; // 如果找到了，就使用已有的节点
+      node_on_graph = true;
+      return node_ptr;
+    } 
+      std::cout << "The " << (startNode ? "start" : "end") << " node not found in the Graph, creating a new one." << std::endl;  
+      std::vector<IntPoint> k_nearest_points = findKNearestPoints(node_strong_cloud, node_ptr->pos, KdNeighborNum); 
+      KdNeighborNum = k_nearest_points.size();
 
       std::vector<IntPoint> raycast_points; //raycast得到的就是四邻域连接
+      std::vector<IntPoint> raycast_line_hit_voronoi(KdNeighborNum, IntPoint(-1, -1));
+      std::vector<int> neighborGraphIdx(KdNeighborNum, start_graph_id);
+      std::vector<bool> neighborVisConnect(KdNeighborNum, false);
+      std::vector<std::vector<IntPoint>> raycast_line_to_voronoi(KdNeighborNum);
       Eigen::Vector2i pc;
       Eigen::Vector2i raycastStart(node_idx(0), node_idx(1));
       int valid_neighbors = 0;
       for (int i = 0; i < KdNeighborNum; ++i)
       {
-        Eigen::Vector2i raycastEnd(node_cloud->points[pointIdxNKNSearch[i]].x, node_cloud->points[pointIdxNKNSearch[i]].y);
+        Eigen::Vector2i raycastEnd(k_nearest_points[i].x, k_nearest_points[i].y);
         // std::cout << "raycastStart: (" << raycastStart.x() << ", " << raycastStart.y() << "), "
         //           << "raycastEnd: (" << raycastEnd.x() << ", " << raycastEnd.y() << ")" << std::endl;
-        bool no_collision = lineVisib(raycastStart, raycastEnd, raycast_points, clearance_low_/resolution_, pc);
+        bool no_collision = lineVisib(raycastStart, raycastEnd, raycast_points, (clearance_low_ - 0.1) / resolution_, pc);
+        auto it_neighbor = gvg_->findNodeInGraphs(IntPoint(raycastEnd.x(), raycastEnd.y()), neighborGraphIdx[i]);
         if (no_collision)
         {
           node_ptr->type = GraphNode::Strong; // 设置为强节点
-          auto it_neighbor = graph.find(IntPoint(raycastEnd.x(), raycastEnd.y()));
-          if (it_neighbor != graph.end()) {
-              node_ptr->addNeighbor(it_neighbor->second, raycast_points);
-              // TODO: 或许也不用反向添加，因为一定是从start_node向外扩展，或向goal_node扩展
+          if (it_neighbor) {
+              node_ptr->addNeighbor(it_neighbor, raycast_points);
               std::reverse(raycast_points.begin(), raycast_points.end());
-              it_neighbor->second->addNeighbor(node_ptr, raycast_points);
+              it_neighbor->addNeighbor(node_ptr, raycast_points);
+              neighborVisConnect[i] = true;
+              ++ valid_neighbors;
+              // break; // x
           }
           else
           {
-            std::cout << "Error: Neighbor node not found in the graph." << std::endl;
+            ROS_ERROR("Error: Neighbor node not found in the graph.");
           }
-          ++ valid_neighbors;
+          
+        }
+        else
+        {
+          //从start或end向最近邻节点
+          for(const auto& pt : raycast_points)
+          {
+            if(gvg_->isVoronoi(pt.x, pt.y))
+            {
+              raycast_line_hit_voronoi[i] = pt;
+              break;
+            }
+            raycast_line_to_voronoi[i].emplace_back(pt);
+          }
         }
       }
       if (valid_neighbors == 0)
       {
-        std::cout << "No valid neighbors found for start node, using the closest node." << std::endl;
+        bool connect_find = false; 
+        for(int i = 0; i < KdNeighborNum; ++i)
+        {
+          if(raycast_line_hit_voronoi[i].x == -1 || raycast_line_hit_voronoi[i].y == -1) 
+            continue;
+          
+          {
+            // connect_paths是不包含头的
+            auto connect_paths = gvg_planner_->expand_voronoi_grid(
+                raycast_line_hit_voronoi[i], node_strong_cloud, last_size_x_, last_size_y_);
+            int debug = 0;
+            if(connect_paths.empty()) continue;
+            node_tmp_ptr->pos = raycast_line_hit_voronoi[i];
+            node_tmp_ptr->type = GraphNode::Strong; // 设置为强节点
+            std::vector<GraphNode::Ptr> two_strong_nodes;
+            for (int i = 0; i < connect_paths.size(); ++i)
+            {
+              auto it_neighbor = gvg_->findNodeInGraphs(connect_paths[i].back(), neighborGraphIdx[i]);
+              if (!it_neighbor) continue;         // 其实如果出现这个，是应该要报错的
+              connect_paths[i].pop_back();        // 去掉最后一个点，因为是连接到Voronoi点的
+              node_tmp_ptr->addNeighbor(it_neighbor, connect_paths[i]);
+              std::reverse(connect_paths[i].begin(), connect_paths[i].end());
+              it_neighbor->addNeighbor(node_tmp_ptr, connect_paths[i]);
+              two_strong_nodes.emplace_back(it_neighbor);
+            }
+            if (two_strong_nodes.size() == 2)
+            {
+              auto node_a = two_strong_nodes[0];
+              auto node_b = two_strong_nodes[1];
+
+              // 从node_a的邻居中移除node_b
+              for (size_t i = 0; i < node_a->neighbors.size(); ++i) {
+                  auto nb_ptr = node_a->neighbors[i].lock();
+                  if (nb_ptr && nb_ptr->pos == node_b->pos) {
+                      node_a->neighbors.erase(node_a->neighbors.begin() + i);
+                      node_a->neighbor_paths.erase(node_a->neighbor_paths.begin() + i);
+                      break;
+                  }
+              }
+              // 从node_b的邻居中移除node_a
+              for (size_t i = 0; i < node_b->neighbors.size(); ++i) {
+                  auto nb_ptr = node_b->neighbors[i].lock();
+                  if (nb_ptr && nb_ptr->pos == node_a->pos) {
+                      node_b->neighbors.erase(node_b->neighbors.begin() + i);
+                      node_b->neighbor_paths.erase(node_b->neighbor_paths.begin() + i);
+                      break;
+                  }
+              }
+            }
+            std::cout << "No valid neighbors found for " << (startNode ? "start" : "end") << 
+                  " node, using the A* to search node. 正向" << std::endl;
+            node_ptr->type = GraphNode::Strong; // 设置为强节点
+            node_ptr->addNeighbor(node_tmp_ptr, raycast_line_to_voronoi[i]);
+            std::reverse(raycast_line_to_voronoi[i].begin(), raycast_line_to_voronoi[i].end());
+            node_tmp_ptr->addNeighbor(node_ptr, raycast_line_to_voronoi[i]);
+
+            start_graph_id = neighborGraphIdx[i];            
+            return node_ptr;
+            // 我是不是也不需要把这两个图里面的Strong节点给断开啊？
+          }
+
+          IntPoint neighbor_pos(k_nearest_points[i].x, k_nearest_points[i].y);
+          auto connect_path = gvg_planner_->AstarOnVoronoi(raycast_line_hit_voronoi[i], 
+                  neighbor_pos, last_size_x_, last_size_y_, neighborGraphIdx[i]);
+          if(connect_path.empty()) continue;
+          connect_find = true;
+          raycast_line_to_voronoi[i].insert(raycast_line_to_voronoi[i].end(), connect_path.begin(), connect_path.end());
+          node_ptr->type = GraphNode::Strong; // 设置为强节点
+          auto it_neighbor = gvg_->findNodeInGraphs(connect_path.back(), neighborGraphIdx[i]);
+          if (!it_neighbor) continue;         // 其实如果出现这个，是应该要报错的
+          node_ptr->addNeighbor(it_neighbor, raycast_line_to_voronoi[i]);
+          // TODO：这里可能会出错。如果这里直接连接上的是其他graph的节点，直接退出了会有问题。
+          std::reverse(raycast_line_to_voronoi[i].begin(), raycast_line_to_voronoi[i].end());
+          it_neighbor->addNeighbor(node_ptr, raycast_line_to_voronoi[i]); 
+          std::cout << "No valid neighbors found for " << (startNode ? "start" : "end") << 
+                  " node, using the A* to search node. 正向" << std::endl;
+          start_graph_id = neighborGraphIdx[i];
+          return node_ptr;
+        }
+        // 沿着raycast_line_to_voronoi[i]的反方向去raycast，直到碰到第一个voronoi点，然后从这个点搜索
+        std::vector<IntPoint> raycast_points; //raycast得到的就是四邻域连接
+        Eigen::Vector2i pc;
+        Eigen::Vector2i raycastStart(node_idx(0), node_idx(1));
+
+        for (int i = 0; i < KdNeighborNum; ++i)
+        {
+            // 反向方向：从最近邻指向当前点
+            IntPoint neighbor_pos(k_nearest_points[i].x, k_nearest_points[i].y);
+            Eigen::Vector2f dir = Eigen::Vector2f(node_idx(0) - neighbor_pos.x,
+                                   node_idx(1) - neighbor_pos.y);
+            if (dir.norm() == 0) continue;
+            dir = dir.normalized();
+            Eigen::Vector2i raycastEnd = raycastStart + Eigen::Vector2i(1000 * dir.x() , 1000 * dir.y()); // 远离当前点的方向
+            // raycast_points里面包含了维诺图上的那个点
+            bool connect_to_voronoi = lineVisib2(raycastStart, raycastEnd, raycast_points, 1.0, pc);
+            if (!connect_to_voronoi) continue;
+
+            {
+              // connect_paths是不包含头的
+              auto connect_paths = gvg_planner_->expand_voronoi_grid(
+                  raycast_points.back(), node_strong_cloud, last_size_x_, last_size_y_);
+              int debug = 0;
+              if(connect_paths.empty()) continue;
+              node_tmp_ptr->pos = raycast_points.back();
+              raycast_points.pop_back(); // 去掉最后一个点，因为是连接到Voronoi点的
+              node_tmp_ptr->type = GraphNode::Strong; // 设置为强节点
+              std::vector<GraphNode::Ptr> two_strong_nodes;
+              for (int i = 0; i < connect_paths.size(); ++i)
+              {
+                auto it_neighbor = gvg_->findNodeInGraphs(connect_paths[i].back(), neighborGraphIdx[i]);
+                if (!it_neighbor) continue;         // 其实如果出现这个，是应该要报错的
+                connect_paths[i].pop_back();        // 去掉最后一个点，因为是连接到Voronoi点的
+                node_tmp_ptr->addNeighbor(it_neighbor, connect_paths[i]);
+                std::reverse(connect_paths[i].begin(), connect_paths[i].end());
+                it_neighbor->addNeighbor(node_tmp_ptr, connect_paths[i]);
+                two_strong_nodes.emplace_back(it_neighbor);
+              }
+              if (two_strong_nodes.size() == 2)
+              {
+                auto node_a = two_strong_nodes[0];
+                auto node_b = two_strong_nodes[1];
+
+                // 从node_a的邻居中移除node_b
+                for (size_t i = 0; i < node_a->neighbors.size(); ++i) {
+                    auto nb_ptr = node_a->neighbors[i].lock();
+                    if (nb_ptr && nb_ptr->pos == node_b->pos) {
+                        node_a->neighbors.erase(node_a->neighbors.begin() + i);
+                        node_a->neighbor_paths.erase(node_a->neighbor_paths.begin() + i);
+                        break;
+                    }
+                }
+                // 从node_b的邻居中移除node_a
+                for (size_t i = 0; i < node_b->neighbors.size(); ++i) {
+                    auto nb_ptr = node_b->neighbors[i].lock();
+                    if (nb_ptr && nb_ptr->pos == node_a->pos) {
+                        node_b->neighbors.erase(node_b->neighbors.begin() + i);
+                        node_b->neighbor_paths.erase(node_b->neighbor_paths.begin() + i);
+                        break;
+                    }
+                }
+              }
+              std::cout << "No valid neighbors found for " << (startNode ? "start" : "end") << 
+                    " node, using the A* to search node. 反向" << std::endl;
+              node_ptr->type = GraphNode::Strong; // 设置为强节点
+              node_ptr->addNeighbor(node_tmp_ptr, raycast_points);
+              std::reverse(raycast_points.begin(), raycast_points.end());
+              node_tmp_ptr->addNeighbor(node_ptr, raycast_points);
+
+              start_graph_id = neighborGraphIdx[i];            
+              return node_ptr;
+              // 我是不是也不需要把这两个图里面的Strong节点给断开啊？
+            }
+
+            auto connect_path = gvg_planner_->AstarOnVoronoi(raycast_points.back(), 
+                    neighbor_pos, last_size_x_, last_size_y_, neighborGraphIdx[i]);
+            if(connect_path.empty()) continue;
+            connect_find = true;
+            raycast_points.insert(raycast_points.end(), connect_path.begin(), connect_path.end());
+            node_ptr->type = GraphNode::Strong; // 设置为强节点
+            auto it_neighbor = gvg_->findNodeInGraphs(connect_path.back(), neighborGraphIdx[i]);
+            if (!it_neighbor) continue;         // 其实如果出现这个，是应该要报错的
+            node_ptr->addNeighbor(it_neighbor, raycast_points);
+            // TODO: 或许也不用反向添加，因为一定是从start_node向外扩展，或向goal_node扩展
+            std::reverse(raycast_points.begin(), raycast_points.end());
+            it_neighbor->addNeighbor(node_ptr, raycast_points);
+            std::cout << "No valid neighbors found for " << (startNode ? "start" : "end") << 
+                      " node, using the A* to search node. 反向" << std::endl;        
+            start_graph_id = neighborGraphIdx[i];
+            return node_ptr;
+        }
+
+
+        std::cout << "No valid neighbors found for " << (startNode ? "start" : "end") << 
+                  " node, using the closet node." << std::endl;
         // 如果没有有效的邻居，则使用最近的节点
-        IntPoint closest_node = IntPoint(node_cloud->points[pointIdxNKNSearch[0]].x, node_cloud->points[pointIdxNKNSearch[0]].y);
-        auto iter_node = graph.find(closest_node);
-        if (iter_node != graph.end()) {
+        IntPoint closest_node = IntPoint(k_nearest_points[0].x, k_nearest_points[0].y);
+        auto iter_node = gvg_->findNodeInGraphs(closest_node, start_graph_id);
+        if (iter_node) {
             std::cout << "Closest node found: (" << closest_node.x << ", " << closest_node.y << ")" << std::endl;
-            node_ptr = iter_node->second; 
+            node_ptr = iter_node; 
         }
       }
-  }
+      else
+      {
+        // 统计neighborGraphIdx中出现次数最多的id
+        std::unordered_map<int, int> id_count;
+        for (int i = 0; i < neighborGraphIdx.size(); ++i)
+        {
+          if(neighborVisConnect[i]) ++id_count[neighborGraphIdx[i]];
+        }
+        int max_count = 0;
+        int most_id = -1;
+        for (const auto& kv : id_count) {
+            if (kv.second > max_count) {
+                max_count = kv.second;
+                most_id = kv.first;
+            }
+        }
+        start_graph_id = most_id;
+      }
   return node_ptr;
 }
+
+void VoronoiLayer::removeNodeAndConnections(gvg::GraphNode::Ptr node) {
+    if (!node) return;
+    IntPoint node_pos = node->pos;
+    for (auto& nb : node->neighbors) {
+        auto nb_ptr = nb.lock();
+        if (!nb_ptr) continue;
+        for (size_t i = nb_ptr->neighbors.size(); i-- > 0;) {
+            auto back_ptr = nb_ptr->neighbors[i].lock();
+            if (back_ptr && back_ptr->pos == node_pos) {
+                nb_ptr->neighbors.erase(nb_ptr->neighbors.begin() + i);
+                nb_ptr->neighbor_paths.erase(nb_ptr->neighbor_paths.begin() + i);
+                // std::cout << "!!!!!!!!!!!!!!" << std::endl;
+            }
+        }
+    }
+    gvg_->removeNodeFromGraph(node->pos);
+    // std::cout << "---------------" << std::endl;
+}
+
+void VoronoiLayer::removeNodeAndRepairStrongConnection(gvg::GraphNode::Ptr node_tmp_ptr) {
+    if (!node_tmp_ptr) return;
+    if (node_tmp_ptr->neighbors.size() != 2) {
+        // 不是两个邻居，不修复
+        removeNodeAndConnections(node_tmp_ptr);
+        return;
+    }
+
+    // 获取两个邻居
+    auto nb_ptr1 = node_tmp_ptr->neighbors[0].lock();
+    auto nb_ptr2 = node_tmp_ptr->neighbors[1].lock();
+    if (!nb_ptr1 || !nb_ptr2) {
+        removeNodeAndConnections(node_tmp_ptr);
+        return;
+    }
+
+    // 取出两条路径
+    auto path1 = node_tmp_ptr->neighbor_paths[0].path;
+    auto path2 = node_tmp_ptr->neighbor_paths[1].path;
+
+    // 构造完整路径：path1 + node_tmp_ptr->pos + 反转path2
+    std::vector<IntPoint> full_path = path1;
+    full_path.push_back(node_tmp_ptr->pos);
+    std::vector<IntPoint> path2_rev = path2;
+    std::reverse(path2_rev.begin(), path2_rev.end());
+    full_path.insert(full_path.end(), path2_rev.begin(), path2_rev.end());
+
+    // 先删除node_tmp_ptr和邻居的连接
+    removeNodeAndConnections(node_tmp_ptr);
+
+    // 互相添加邻居关系
+    nb_ptr1->addNeighbor(nb_ptr2, full_path);
+    std::vector<IntPoint> full_path_rev = full_path;
+    std::reverse(full_path_rev.begin(), full_path_rev.end());
+    nb_ptr2->addNeighbor(nb_ptr1, full_path_rev);
+}
+
 
 void VoronoiLayer::publishPath(const std::vector<IntPoint>& path_nodes)
 {
@@ -671,10 +1236,10 @@ void VoronoiLayer::drawESDFToMat(cv::Mat& esdf_img)
     const float min_dist = 0.0;
     const float max_dist = 3.2;
     const float scale = 255.0 / 3.2;
-    for (int y = 0; y < last_size_y_; ++y)
-    {
-        for (int x = 0; x < last_size_x_; ++x)
-        {
+    for (int x = 0; x < last_size_x_; ++x)
+    {    
+      for (int y = 0; y < last_size_y_; ++y)
+      {
             float dist = voronoi_.getDistance(x, y) * resolution_;
             dist = std::min(std::max(dist, min_dist), max_dist); // 限制在[min_dist, max_dist]
             // 归一化到0-255
@@ -736,7 +1301,7 @@ void VoronoiLayer::drawESDFToMat(cv::Mat& esdf_img)
         dir = (process_path[i] - short_path.back()).normalized();
         push_dir = grad - grad.dot(dir) * dir;
         push_dir.normalize();
-        colli_pt = colli_pt + push_dir;
+        colli_pt = colli_pt + 1.3 * push_dir; // 改了这个地方，多推一点
         // --i;
       }
       // if(1) publishTestPath(std::vector<Eigen::Vector2d>{short_path.back(), process_path[i]}, 2);      
@@ -795,7 +1360,7 @@ bool VoronoiLayer::lineVisib(const Eigen::Vector2d& p1, const Eigen::Vector2d& p
     while (raycaster.step(ray_pt)) {
       pt_id(0) = ray_pt(0) + offset_(0);
       pt_id(1) = ray_pt(1) + offset_(1);
-      dist = voronoi_.getDistance(pt_id(0), pt_id(1));
+      dist = voronoi_.getDistanceNoBoundCheck(pt_id(0), pt_id(1));
       // std::cout << "pt: " << pt_id.transpose() << ", dist: " << dist << ", thre: " <<thresh << std::endl;
       if (dist <= (thresh)) {
         pc(0) = pt_id(0) + 0.5;
@@ -823,7 +1388,7 @@ bool VoronoiLayer::lineVisib(const Eigen::Vector2i& p1, const Eigen::Vector2i& p
     while (raycaster.step(ray_pt)) {
       pt_id(0) = ray_pt(0) + 0.5;
       pt_id(1) = ray_pt(1) + 0.5;
-      dist = voronoi_.getDistance(pt_id(0), pt_id(1));
+      dist = voronoi_.getDistanceNoBoundCheck(pt_id(0), pt_id(1));
       // std::cout << "dist: " << dist << std::endl;
       if (dist <= (thresh)) {
         pc(0) = pt_id(0);
@@ -831,7 +1396,7 @@ bool VoronoiLayer::lineVisib(const Eigen::Vector2i& p1, const Eigen::Vector2i& p
         return false;
       }
       else {
-        if(iter > 0) //跳过第一个点，因为这个是起点
+        if(iter > 0) //跳过第一个点，因为这个是起点、我不需要
           rayline_list.emplace_back(pt_id(0), pt_id(1));
       }
       ++iter;
@@ -840,7 +1405,49 @@ bool VoronoiLayer::lineVisib(const Eigen::Vector2i& p1, const Eigen::Vector2i& p
     return true;
   }
 
+bool VoronoiLayer::lineVisib2(const Eigen::Vector2i& p1, const Eigen::Vector2i& p2, std::vector<IntPoint>& rayline_list,
+                             double thresh, Eigen::Vector2i& pc, int caster_id, int skip_mode) {
+    rayline_list.clear();
+    Eigen::Vector3d ray_pt;
+    Eigen::Vector2i pt_id;
+    double dist;
+    thresh = std::max(thresh, 1e-3);
+    Eigen::Vector3d p1_3d(p1.x() + 0.5, p1.y() + 0.5, 0.0);
+    Eigen::Vector3d p2_3d(p2.x() + 0.5, p2.y() + 0.5, 0.0);
+    RayCaster raycaster;      
+    raycaster.setInput(p1_3d, p2_3d);
 
+    // while会跳过最后一个点
+    int iter = 0;
+    while (raycaster.step(ray_pt)) {
+      pt_id(0) = ray_pt(0) + 0.5;
+      pt_id(1) = ray_pt(1) + 0.5;
+      if (pt_id(0) < 0 || pt_id(0) >= last_size_x_ || 
+          pt_id(1) < 0 || pt_id(1) >= last_size_y_) {
+        return false;
+      }
+
+      if (gvg_->isVoronoi(pt_id(0), pt_id(1))) {
+        rayline_list.emplace_back(pt_id(0), pt_id(1));
+        return true;
+      }
+
+      dist = voronoi_.getDistance(pt_id(0), pt_id(1));
+      // std::cout << "dist: " << dist << std::endl;
+      if (dist <= (thresh)) {
+        pc(0) = pt_id(0);
+        pc(1) = pt_id(1);
+        return false;
+      }
+      else {
+        if(iter > 0) //跳过第一个点，因为这个是起点、我不需要
+          rayline_list.emplace_back(pt_id(0), pt_id(1));
+      }
+      ++iter;
+    }
+    // rayline_list.emplace_back(p2(0), p2(1)); // 添加终点
+    return false;
+  }
 
   void VoronoiLayer::evaluateEDTWithGrad(const Eigen::Vector2d& pos, double& dist, Eigen::Vector2d& grad)
   {
@@ -956,42 +1563,46 @@ void VoronoiLayer::odometryCallback(const nav_msgs::OdometryConstPtr& msg) {
   odom_orient_.x() = msg->pose.pose.orientation.x;
   odom_orient_.y() = msg->pose.pose.orientation.y;
   odom_orient_.z() = msg->pose.pose.orientation.z;
+  // std::cout << "current yaw: " << Eigen::Quaterniond(odom_orient_).toRotationMatrix().eulerAngles(0, 1, 2)[2] << std::endl;
 
+  Eigen::Vector3d rot_x = odom_orient_.toRotationMatrix().block(0, 0, 3, 1);
+  odom_yaw_         = atan2(rot_x(1), rot_x(0));
   has_odom_ = true;
 }
 
 void VoronoiLayer::rvizGoalCallback(const geometry_msgs::PoseStampedConstPtr& msg)
 {
   if (!has_odom_) {
-    ROS_WARN("No odometry data received yet, cannot set goal.");
+    // ROS_WARN("No odometry data received yet, cannot set goal.");
     return;
   }
 
   Eigen::Vector3d goal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
   lastest_goal_ = goal;
   has_goal_ = true;
-  // this->plan(odom_pos_, goal);
+  this->plan(odom_pos_, lastest_goal_, odom_yaw_);
 }
 
 void VoronoiLayer::planTimerCallback(const ros::TimerEvent& event)
 {
-  if (!has_odom_ || !has_goal_) {
-    ROS_WARN("No odometry data received yet, cannot plan.");
+  if (!has_odom_) {
+    // ROS_WARN("No odometry data received yet, cannot plan.");
     return;
   }
-  this->plan(odom_pos_, lastest_goal_);
+  if (!has_goal_){
+    return;
+  }
+  this->plan(odom_pos_, lastest_goal_, odom_yaw_);
 }
 
 void VoronoiLayer::voronoiUpdateTimerCallback(const ros::TimerEvent& event)
 {
   boost::unique_lock<boost::mutex> lock(mutex_);
 
-
-
   std::vector<IntPoint> new_free_cells, new_occupied_cells;
-  for (unsigned int j = 0; j < last_size_y_ ; ++j)
-  {
-    for (unsigned int i = 0; i < last_size_x_; ++i)
+  for (unsigned int i = 0; i < last_size_x_; ++i)
+  {  
+    for (unsigned int j = 0; j < last_size_y_ ; ++j)
     {
       int index = j * last_size_x_ + i;
       if (voronoi_.isOccupied(i, j))

@@ -24,6 +24,9 @@ public:
   IntPoint operator-(const IntPoint& other) const {
     return IntPoint(x - other.x, y - other.y);
   } 
+  bool operator<(const IntPoint& other) const {
+        return (y < other.y) || (y == other.y && x < other.x);
+  }
 };
 
 #endif

@@ -1,6 +1,5 @@
 <sdf version='1.7'>
   <world name='default'>
-    <plugin name='disable_physics' filename='libdisable_physics.so'/>
     <light name='sun' type='directional'>
       <cast_shadows>0</cast_shadows>
       <pose>0 0 10 0 -0 0</pose>
@@ -1509,5 +1508,6 @@
       </link>
       <pose>-6.10451 -6.93767 0 0 -0 0</pose>
     </model>
+  <plugin name='ros_interface_plugin' filename='librotors_gazebo_ros_interface_plugin.so'/>
   </world>
 </sdf>

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(plan_manage)
 
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "-std=c++14")
+set(CMAKE_CXX_FLAGS "-std=c++17")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
 find_package(Eigen3 3.1.0 REQUIRED)
@@ -65,6 +65,7 @@ add_executable(fast_planner_node
 target_link_libraries(fast_planner_node 
   ${catkin_LIBRARIES}
   ${EIGEN3_LIBS}
+  ${PCL_LIBRARIES}
   Eigen3::Eigen
   # glog::glog
   )

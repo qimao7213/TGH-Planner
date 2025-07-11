@@ -1,13 +1,13 @@
 teleop_twist_joy:
-  axis_linear: 1               # 左摇杆上下控制线速度
+  axis_linear: 1               # 左摇杆上下控制线速度（上下）
   scale_linear: 0.5            # 线速度比例
   scale_linear_turbo: 2.0      # Turbo 模式下的线速度比例
-  axis_angular: 0              # 左摇杆左右控制角速度
+  axis_angular: 2              # 右摇杆左右控制角速度（左右，通常为3）
   scale_angular: 1.0           # 角速度比例
-  enable_button: 5             # 右肩键启用控制
-  enable_turbo_button: 6       # 左肩键启用 Turbo 模式
+  enable_button: 5             # 右肩键为启动键（RB）
+  enable_turbo_button: 6       # 左肩键为Turbo（LB，可选）
 
 joy_node:
-  deadzone: 0.1                # 摇杆的死区，避免微小抖动
-  autorepeat_rate: 20          # 按键自动重复的频率（Hz）
-  dev: /dev/input/js0          # 手柄设备路径
+  deadzone: 0.1
+  autorepeat_rate: 20
+  dev: /dev/input/js0

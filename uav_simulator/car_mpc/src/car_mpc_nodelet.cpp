@@ -51,7 +51,7 @@ class Nodelet : public nodelet::Nodelet {
   double omega_max_ = 1.57;
   double dt_;
   double vel_odom_;
-  double k_vel_ = 1.0, k_omega_ = 1.0;
+  double k_vel_ = 10.0, k_omega_ = 1.0;
   double kp_ = 0.02, kd_ = 0.0;
   double yaw_error_last_ = 0.0;
 
@@ -94,7 +94,8 @@ class Nodelet : public nodelet::Nodelet {
     t_cur = min(t_cur, traj_duration_);
     t_cur = max(t_cur, 0.00);
     // 如果是直接从bsplie里面读取速度和角速度的话，就打开下面这一段。否则就是通过mpc算的。
-    if(0){
+    double vel_kk;
+    if(1){
       Eigen::Vector3d pos, vel, acc, pos_f;
       double yaw, yawdot;
     
@@ -149,8 +150,8 @@ class Nodelet : public nodelet::Nodelet {
       // 创建 cmd_vel 消息
       geometry_msgs::Twist cmd_vel;
       cmd_vel.linear.x = vel_val;          // 线速度
-      cmd_vel.angular.z = yaw_vel;     // 角速度
-
+      cmd_vel.angular.z = yawdot * 0.5;     // 角速度
+      vel_kk = vel_val;
       // 发布 cmd_vel 消息
       cmd_ros_pub_.publish(cmd_vel);
       return;
@@ -174,24 +175,24 @@ class Nodelet : public nodelet::Nodelet {
       mpcPtr_->visualization(t_cur);
       msg.a = -last_u_(0);
       msg.delta = -last_u_(1);
-      cmd_pub_.publish(msg);
+      // cmd_pub_.publish(msg);
 
-      // //下面是将给阿克曼的输入，转换为cmd_vel的
-      // double omega = vel_odom_ * std::tan(msg.delta) / wheel_base_;
-      // double vel = vel_odom_ + 0.0007 * msg.a;
-      // if(vel < -vel_max_) vel = -vel_max_;
-      // else if (vel > vel_max_) vel = vel_max_;
-      // if(omega < -omega_max_) omega = -omega_max_;
-      // else if (omega > omega_max_) omega = omega_max_;
-      // vel *= k_vel_; 
-      // omega *= k_omega_;
-      // // 创建 cmd_vel 消息
-      // geometry_msgs::Twist cmd_vel;
-      // cmd_vel.linear.x = vel;          // 线速度
-      // cmd_vel.angular.z = omega;     // 角速度
+      //下面是将给阿克曼的输入，转换为cmd_vel的
+      double omega = vel_odom_ * std::tan(msg.delta) / wheel_base_;
+      double vel = vel_odom_ + 0.07 * msg.a;
+      if(vel < -vel_max_) vel = -vel_max_;
+      else if (vel > vel_max_) vel = vel_max_;
+      if(omega < -omega_max_) omega = -omega_max_;
+      else if (omega > omega_max_) omega = omega_max_;
+      vel *= k_vel_; 
+      omega *= k_omega_;
+      // 创建 cmd_vel 消息
+      geometry_msgs::Twist cmd_vel;
+      cmd_vel.linear.x = vel_kk;          // 线速度
+      cmd_vel.angular.z = omega;     // 角速度
 
-      // // 发布 cmd_vel 消息
-      // cmd_ros_pub_.publish(cmd_vel);
+      // 发布 cmd_vel 消息
+      cmd_ros_pub_.publish(cmd_vel);
       return;
     }    
     else
@@ -205,26 +206,26 @@ class Nodelet : public nodelet::Nodelet {
     
     msg.a = u(0);
     msg.delta = min(u(1), delta_max_/57.3);
-    cmd_pub_.publish(msg);
+    // cmd_pub_.publish(msg);
     mpcPtr_->visualization(t_cur);
     last_u_ = u;
 
-    // //下面是将给阿克曼的输入，转换为cmd_vel的
-    // double omega = vel_odom_ * std::tan(msg.delta) / wheel_base_;
-    // double vel = vel_odom_ + 0.0007 * msg.a;
-    // if(vel < -vel_max_) vel = -vel_max_;
-    // else if (vel > vel_max_) vel = vel_max_;
-    // if(omega < -omega_max_) omega = -omega_max_;
-    // else if (omega > omega_max_) omega = omega_max_;
+    //下面是将给阿克曼的输入，转换为cmd_vel的
+    double omega = vel_kk * std::tan(msg.delta) / wheel_base_;
+    double vel = vel_odom_ + 0.0007 * msg.a;
+    if(vel < -vel_max_) vel = -vel_max_;
+    else if (vel > vel_max_) vel = vel_max_;
+    if(omega < -omega_max_) omega = -omega_max_;
+    else if (omega > omega_max_) omega = omega_max_;
 
-    // vel *= k_vel_ ; 
-    // omega *= k_omega_;
-    // // 创建 cmd_vel 消息
-    // geometry_msgs::Twist cmd_vel;
-    // cmd_vel.linear.x = vel;          // 线速度
-    // cmd_vel.angular.z = omega;     // 角速度
-    // // 发布 cmd_vel 消息
-    // cmd_ros_pub_.publish(cmd_vel);
+    vel *= k_vel_ ; 
+    omega *= k_omega_;
+    // 创建 cmd_vel 消息
+    geometry_msgs::Twist cmd_vel;
+    cmd_vel.linear.x = vel_kk;          // 线速度
+    cmd_vel.angular.z = omega * 0.5;     // 角速度
+    // 发布 cmd_vel 消息
+    cmd_ros_pub_.publish(cmd_vel);
     
     return;
   }

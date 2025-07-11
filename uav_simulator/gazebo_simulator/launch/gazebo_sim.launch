@@ -1,12 +1,12 @@
 <launch>
   <arg name="paused" default="false"/>
   <arg name="use_sim_time" default="true"/>
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
   <arg name="headless" default="true"/>
   <arg name="debug" default="false"/>
-  <arg name="verbose" default="false"/>
-  <arg name="world_file" default="/home/bhrqhb/catkin_ws/planner/catkin_ws_faster_uav/src/acl-gazebo/acl_sim/worlds/icra0.world" />
-  <!-- <arg name="world_file" default="$(find gazebo_simulator)/world/icra0.world" /> -->
+  <arg name="verbose" default="true"/>
+  <!-- <arg name="world_file" default="/home/bhrqhb/catkin_ws/planner/catkin_ws_faster_uav/src/acl-gazebo/acl_sim/worlds/icra0.world" /> -->
+  <arg name="world_file" default="$(find gazebo_simulator)/world/scene_1.world" />
   
   <!-- Start gazebo and load the world -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch" >
@@ -23,14 +23,12 @@
   <!-- zigzag7: 20, 22 -->
   <!-- bugtrap10: 20, 0 -->
   <!-- perception: -3, -3 -->
-  <arg name="map_offset_x_" default="20"/>
+  <arg name="map_offset_x_" default="0"/>
   <arg name="map_offset_y_" default="0"/>
   <arg name="map_offset_z_" default="0.0"/>
 
 
   <arg name="robot_model_name" default="simple_box"/>
-  <arg name="reference_frame" default="map"/>
-  <arg name="odom_name" default="/car/odom"/>
 
   <!-- 加载 URDF 模型 -->
   <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find jackal_description)/urdf/jackal.urdf.xacro'"/>
@@ -38,15 +36,15 @@
   <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model $(arg robot_model_name)" output="screen" />
   <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
   <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
-
+  <include file="$(find jackal_control)/launch/control.launch" />
   <!-- 启动自定义节点 -->
-  <node name="gazebo_simulator" pkg="gazebo_simulator" type="set_robot_pose" output="screen" >
+  <!-- 现在使用cmd_vel来控制小车，从而更新位姿，而不使用这种set的方式 -->
+  <!-- <node name="gazebo_simulator" pkg="gazebo_simulator" type="set_robot_pose" output="screen" >
     <param name="map_offset_x" value="$(arg map_offset_x_)" type="double"/>
     <param name="map_offset_y" value="$(arg map_offset_y_)" type="double"/>
     <param name="map_offset_z" value="$(arg map_offset_z_)" type="double"/>
     <param name="odom_name" value="$(arg odom_name)" />
     <param name="robot_model_name" value="$(arg robot_model_name)" />
     <param name="reference_frame" value="$(arg reference_frame)" />
-
-  </node>
+  </node> -->
 </launch>

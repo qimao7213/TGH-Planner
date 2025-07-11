@@ -41,6 +41,7 @@ bool twoWayDrive = true;  // 车辆是否可以双向行驶（前进和后退）
 double lookAheadDis = 0.5;
 double yawRateGain = 7.5;
 double stopYawRateGain = 7.5;
+double speeddownGain = 0.7;  //让减速的时候更平滑
 double maxYawRate = 45.0;
 double maxYawAccel = 10;
 double maxSpeed = 1.0;
@@ -198,6 +199,7 @@ int main(int argc, char **argv) {
     nhPrivate.getParam("lookAheadDis", lookAheadDis);
     nhPrivate.getParam("yawRateGain", yawRateGain);
     nhPrivate.getParam("stopYawRateGain", stopYawRateGain);
+    nhPrivate.getParam("speeddownGain", speeddownGain);
     nhPrivate.getParam("maxYawRate", maxYawRate);
     nhPrivate.getParam("maxYawAccel", maxYawAccel);
     nhPrivate.getParam("maxSpeed", maxSpeed);
@@ -245,7 +247,7 @@ int main(int argc, char **argv) {
         else if (joySpeed > 1.0) joySpeed = 1.0;
     }
 
-    ros::Rate rate(20);
+    ros::Rate rate(20);  //下面哪些参数里面的20，应该是对应这里的20Hz频率吧
     bool status = ros::ok();
     while (status) {
         ros::spinOnce();
@@ -332,7 +334,7 @@ int main(int argc, char **argv) {
                 if (vehicleSpeed < joySpeed3) vehicleSpeed += maxAccel / 20.0; 
                 else if (vehicleSpeed > joySpeed3) vehicleSpeed -= maxAccel / 20.0; 
             } else { 
-                if (vehicleSpeed > 0) vehicleSpeed -= maxAccel / 20.0; 
+                if (vehicleSpeed > 0) vehicleSpeed -= speeddownGain * maxAccel / 20.0; 
                 else if (vehicleSpeed < 0) vehicleSpeed += maxAccel / 20.0; 
             }
 

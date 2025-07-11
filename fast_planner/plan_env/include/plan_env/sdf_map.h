@@ -93,7 +93,8 @@ struct MappingParameters {
   int perception_data_type_;                             // 
   string lidar_link_, camera_link_, camera_frame_;       // 
   Eigen::Matrix3d camera_LinkToFrame_;                      // camera的旋转矩阵
-
+  Eigen::Vector3d sensor_on_base_pos_;
+  Eigen::Quaterniond sensor_on_base_q_;
   /* camera parameters */
   double cx_, cy_, fx_, fy_;
 
@@ -152,6 +153,9 @@ struct MappingParameters {
   // 将world坐标系下[height_obs_min_2D_, height_obs_max_2D_]的设置为障碍物
   double height_obs_max_2D_;      
   double height_obs_min_2D_;      
+
+  double scan_angle_increment_; // 从3D点云生成 2D激光扫描的角度增量，单位是弧度.如果原始点云比较密集，这个值可以设置小一点；否则，这个值应该大
+  double half_fov_;             // 对2D激光扫描进行稠密化时考虑的半视场角，单位是弧度
 };
 
 // intermediate mapping data for fusion, esdf
@@ -183,9 +187,9 @@ struct MappingData {
   std::vector<Eigen::Vector3i> freed_idx_;             //给2D occupancy_buffer_inflate_2D_清理地图用
 
   // camera position and pose data
-  // **_align_是project点云时的位姿，和点云的更新保持一致
-  Eigen::Vector3d camera_pos_, last_camera_pos_,camera_pos_align_;
-  Eigen::Quaterniond camera_q_, last_camera_q_, camera_q_align_;
+  // sensorOnBase是指lidar在base_link下的位姿
+  Eigen::Vector3d camera_pos_, last_camera_pos_, scan_pos_;
+  Eigen::Quaterniond camera_q_, last_camera_q_, scan_q_;
   ros::Time time_of_received_pointcloud_;
   // depth image data
 
@@ -207,6 +211,7 @@ struct MappingData {
   vector<Eigen::Vector3d> proj_points_; //深度图里，可以用来更新占据栅格地图的点云。先分配了固定大小的，具体有多少个点根据proj_points_cnt来确定
   vector<Eigen::Vector3d> proj_points_local_;
   sensor_msgs::LaserScan scan_pt_;
+  vector<Eigen::Vector3d> scan_pt_refined_; 
   ros::Time sensor_time_;
   int proj_points_cnt;
 
@@ -317,6 +322,7 @@ public:
   void publishUnknown2D();
   void publishDepth();
   void publishScanMsg();
+  void publishMissOcc();
   void checkDist();
   bool hasDepthObservation();
   bool odomValid();
@@ -366,11 +372,13 @@ private:
   void raycastProcess();
   void raycastProcess2D();
   void clearAndInflateLocalMap();
-
+  void densifyScanPoints(const sensor_msgs::LaserScan& scan_pt,
+                         std::vector<Eigen::Vector3d>& dense_points, double half_fov = M_PI,
+                         double min_dist = 0.15, double max_dist = 0.50);
   //把一个index pt附近step范围内的检索出来
   inline void inflatePoint(const Eigen::Vector3i& pt, int step, vector<Eigen::Vector3i>& pts);
-  int setCacheOccupancy(Eigen::Vector3d pos, int occ);
-  int setCacheOccupancy2D(Eigen::Vector3d pos, int occ);
+  int setCacheOccupancy(Eigen::Vector3d pos, int occ, bool check_occ = false);
+  int setCacheOccupancy2D(Eigen::Vector3d pos, int occ, bool check_occ = false);
   // 如果一个点超出地图范围内，那么就找一个地图内的最近的点给它。这样就不会出现索引越界的报错了
   Eigen::Vector3d closetPointInMap(const Eigen::Vector3d& pt, const Eigen::Vector3d& camera_pt);
   bool getTransform(const std::string& source_frame, const std::string& target_frame, const ros::Time& time,
@@ -400,7 +408,8 @@ private:
                  update_range_pub_;//那个长方体
   ros::Publisher unknown_pub_, 
                  depth_pub_,      //一定范围内的深度点云
-                 scan_pub_;
+                 scan_pub_,
+                 scan_refined_pub_;
   ros::Publisher depth_pub2_;     //测试发布的点云是否对齐用
   ros::Publisher update_region_poly_pub_;
   ros::Timer occ_timer_, esdf_timer_, vis_timer_;

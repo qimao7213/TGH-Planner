@@ -5,3 +5,7 @@ test/traj_record/traj_cmd.txt
 test/*
 uav_simulator/save_map_point/*
 uav_simulator/Mid360_simulation_plugin-main/*
+test/traj_record/data/planning_time_cost.txt
+uav_simulator/cmu_palnner/local_planner/rviz/cmu_planner.rviz
+test/traj_record/data/*
+uav_simulator/dynamicvoronoi/data/*

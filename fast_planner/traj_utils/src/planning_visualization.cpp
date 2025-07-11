@@ -67,6 +67,9 @@ PlanningVisualization::PlanningVisualization(ros::NodeHandle& nh) {
   topo_path_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/topo_path", 20);
   pubs_.push_back(topo_path_pub_);
 
+  voronoi_topo_path_pub_ = node.advertise<visualization_msgs::Marker>("/planning_vis/voronoi_topo_path", 20);
+  pubs_.push_back(voronoi_topo_path_pub_);
+
   last_topo_path1_num_     = 0;
   last_topo_path2_num_     = 0;
   last_bspline_phase1_num_ = 0;
@@ -361,6 +364,31 @@ void PlanningVisualization::drawTopoPathsPhase1(vector<vector<Eigen::Vector3d>>&
                     FILTERED_PATH + i % 100, 11);
   }
 }
+
+void PlanningVisualization::drawTopoVoronoiPaths(vector<vector<Eigen::Vector3d>>& paths, double size) {
+  // clear drawn paths
+  Eigen::Vector4d color1(1, 1, 1, 1);
+  for (int i = 0; i < last_topo_voronoi_path_num_; ++i) {
+    vector<Eigen::Vector3d> empty;
+    displayLineList(empty, empty, size, color1, FILTERED_PATH + i % 100, 12);
+  }
+
+  last_topo_voronoi_path_num_ = paths.size();
+
+  // draw new paths
+  for (int i = 0; i < paths.size(); ++i) {
+    vector<Eigen::Vector3d> edge_pt1, edge_pt2;
+
+    for (int j = 0; j < paths[i].size() - 1; ++j) {
+      edge_pt1.push_back(paths[i][j]);
+      edge_pt2.push_back(paths[i][j + 1]);
+    }
+
+    displayLineList(edge_pt1, edge_pt2, size, getColor(double(i) / (last_topo_voronoi_path_num_), 0.8),
+                    FILTERED_PATH + i % 100, 12);
+  }
+}
+
 
 void PlanningVisualization::drawTopoSampleArea(const vector<Eigen::Vector3d>& corners, 
                                                double line_width, const Eigen::Vector4d& color)

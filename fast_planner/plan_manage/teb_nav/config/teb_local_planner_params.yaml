@@ -1,6 +1,6 @@
 TebLocalPlannerROS:
 
- odom_topic: /car/odom
+ odom_topic: /car_odom
  via_points: /planning_vis/guide_path
  global_costmap: /move_base/global_costmap/costmap
  local_costmap:  /move_base/local_costmap/costmap

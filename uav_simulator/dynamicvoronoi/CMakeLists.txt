@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_geometry_msgs
   plan_env
+  traj_utils
 )
 
 ## 声明 catkin 包
@@ -29,7 +30,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native -msse")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native -msse")
 
 # 设置C++标准
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 find_package(Eigen3 REQUIRED)
@@ -37,15 +38,16 @@ find_package(PCL 1.7 REQUIRED)
 find_package(OpenCV REQUIRED)
 # OpenMP
 find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP found")
-    # add_definitions(-DUSE_OPENMP)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-endif()
+# if(OpenMP_CXX_FOUND)
+#     message(STATUS "OpenMP found")
+#     # add_definitions(-DUSE_OPENMP)
+#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+# endif()
 ## 包含头文件目录
 include_directories(
   SYSTEM
   include
+  include/dvr
   ${catkin_INCLUDE_DIRS}
   ${Eigen3_INCLUDE_DIRS} 
   ${OpenCV_INCLUDE_DIRS}
@@ -68,5 +70,11 @@ add_executable(mainLauMethod
     src/mainLauMethod.cpp 
     )
 target_link_libraries(mainLauMethod 
+    ${catkin_LIBRARIES} dynavoro)
+
+add_executable(voronoi_planner_node
+    src/voronoi_planner_node.cpp 
+    )
+target_link_libraries(voronoi_planner_node 
     ${catkin_LIBRARIES} dynavoro)
 

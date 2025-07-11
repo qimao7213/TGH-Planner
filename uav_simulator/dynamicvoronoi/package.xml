@@ -21,6 +21,7 @@
   <build_depend>tf2_ros</build_depend>
   <build_depend>tf2_geometry_msgs</build_depend>
   <build_depend>plan_env</build_depend>
+  <build_depend>traj_utils</build_depend>
 
   <exec_depend>roscpp</exec_depend>
   <exec_depend>rospy</exec_depend>
@@ -34,6 +35,7 @@
   <exec_depend>tf2_ros</exec_depend>
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>plan_env</exec_depend>
+  <exec_depend>traj_utils</exec_depend>
   <!-- Other optional tags -->
   <url type="website">http://wiki.ros.org/your_package_name</url>
   <url type="repository">https://github.com/your_github/your_package_name</url>

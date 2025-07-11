@@ -330,6 +330,11 @@ float DynamicVoronoi::getDistance(int x, int y) const
     return -INFINITY;
 }
 
+float DynamicVoronoi::getDistanceNoBoundCheck(int x, int y) const
+{
+  return data[x][y].dist;
+}
+
 float DynamicVoronoi::getDistanceSq(int x, int y) const
 {
   if ((x > 0) && (x < sizeX) && (y > 0) && (y < sizeY))
@@ -565,6 +570,27 @@ void DynamicVoronoi::visualize(const char* filename)
   fclose(F);
 }
 
+std::vector<INTPOINT> DynamicVoronoi::getAllPruneQueuePoints() {
+    std::vector<INTPOINT> points;
+    auto pruneQueue_tmp = pruneQueue;
+    while (!pruneQueue_tmp.empty()) {
+        points.push_back(pruneQueue_tmp.front());
+        pruneQueue_tmp.pop();
+    }
+    return points;
+}
+
+std::vector<INTPOINT> DynamicVoronoi::getAllSortedPruneQueuePoints(){
+    std::vector<INTPOINT> points;
+    auto sortedPruneQueue_tmp = sortedPruneQueue;
+    while (!sortedPruneQueue_tmp.empty()) {
+        points.push_back(sortedPruneQueue_tmp.pop());
+    }
+    return points;
+
+}
+
+// occupied，在这里既表示明确的障碍物，也表示当前次更新的波前中的中止点？
 void DynamicVoronoi::prune()
 {
   // filler
@@ -640,6 +666,14 @@ void DynamicVoronoi::prune()
       }
     }
   }
+  for (int i = 0; i < sizeX; ++i)
+    for (int j = 0; j < sizeY; ++j)
+      if (isVoronoi(i, j)) {
+        data[i][j].voronoi = freeQueued;
+        sortedPruneQueue.push(data[i][j].sqdist, INTPOINT(i, j));
+      }
+
+  // sortedPruneQueueBackup = sortedPruneQueueBackup;
 
   while (!sortedPruneQueue.empty())
   {

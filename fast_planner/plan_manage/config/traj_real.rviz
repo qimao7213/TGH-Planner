@@ -8,13 +8,13 @@ Panels:
         - /LocalMap1
         - /Planning1/bspline_traj1/Namespaces1
         - /Mapping1/simulation_map1/Autocompute Value Bounds1
-        - /Simulation1
+        - /Simulation1/car_simulator1
         - /MPC1/mpc_path_ref1
+        - /planning_2D1
         - /TF1/Frames1
         - /VORONOI1
-        - /cmu_local_planner1
       Splitter Ratio: 0.6141732335090637
-    Tree Height: 526
+    Tree Height: 545
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -32,7 +32,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: Image
+    SyncSource: depth_cloud
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -62,7 +62,7 @@ Visualization Manager:
       Offset:
         X: 0
         Y: 0
-        Z: 0.10000000149011612
+        Z: 0.699999988079071
       Plane: XY
       Plane Cell Count: 400
       Reference Frame: <Fixed Frame>
@@ -212,7 +212,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.10000000149011612
           Style: Boxes
-          Topic: /cloud_registered_body
+          Topic: /local_point_ufomap
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -220,8 +220,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 11.735931396484375
-            Min Value: -0.5308514833450317
+            Max Value: 2.7923166751861572
+            Min Value: -0.007552693597972393
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -240,7 +240,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.10000000149011612
           Style: Boxes
-          Topic: /livox/lidar_points
+          Topic: /sdf_map/depth_cloud2
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -276,8 +276,8 @@ Visualization Manager:
         - Alpha: 1
           Autocompute Intensity Bounds: true
           Autocompute Value Bounds:
-            Max Value: 2.2400221824645996
-            Min Value: -0.4353410005569458
+            Max Value: 2.7977755069732666
+            Min Value: 0.031134963035583496
             Value: true
           Axis: Z
           Channel Name: intensity
@@ -296,7 +296,7 @@ Visualization Manager:
           Size (Pixels): 3
           Size (m): 0.10000000149011612
           Style: Flat Squares
-          Topic: /sdf_map/depth_cloud
+          Topic: /jackal/velodyne/velodyne_points
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
@@ -312,8 +312,8 @@ Visualization Manager:
           Class: rviz/LaserScan
           Color: 239; 41; 41
           Color Transformer: FlatColor
-          Decay Time: 0
-          Enabled: true
+          Decay Time: 1000
+          Enabled: false
           Invert Rainbow: false
           Max Color: 255; 255; 255
           Min Color: 0; 0; 0
@@ -328,16 +328,6 @@ Visualization Manager:
           Unreliable: false
           Use Fixed Frame: true
           Use rainbow: true
-          Value: true
-        - Alpha: 0.699999988079071
-          Class: rviz/Map
-          Color Scheme: map
-          Draw Behind: false
-          Enabled: false
-          Name: MissOccMap
-          Topic: /sdf_map/miss_occ_grid
-          Unreliable: false
-          Use Timestamp: false
           Value: false
       Enabled: true
       Name: LocalMap
@@ -544,7 +534,7 @@ Visualization Manager:
           Use Fixed Frame: true
           Use rainbow: true
           Value: false
-      Enabled: false
+      Enabled: true
       Name: Mapping
     - Class: rviz/Group
       Displays:
@@ -566,7 +556,7 @@ Visualization Manager:
               Value: true
             Value: true
           Enabled: true
-          Keep: 10
+          Keep: 3
           Name: car_simulator
           Position Tolerance: 0.10000000149011612
           Queue Size: 10
@@ -580,7 +570,7 @@ Visualization Manager:
             Shaft Length: 1
             Shaft Radius: 0.05000000074505806
             Value: Arrow
-          Topic: /car_odom
+          Topic: /Odometry
           Unreliable: false
           Value: true
         - Angle Tolerance: 0.10000000149011612
@@ -600,8 +590,8 @@ Visualization Manager:
               Scale: 1
               Value: true
             Value: true
-          Enabled: false
-          Keep: 10
+          Enabled: true
+          Keep: 3
           Name: gazebo_odom_gt
           Position Tolerance: 0.10000000149011612
           Queue Size: 10
@@ -615,9 +605,9 @@ Visualization Manager:
             Shaft Length: 1
             Shaft Radius: 0.05000000074505806
             Value: Arrow
-          Topic: /Odometry
+          Topic: /car_odom
           Unreliable: false
-          Value: false
+          Value: true
         - Class: rviz/Marker
           Enabled: false
           Marker Topic: /odom_visualization/robot
@@ -652,121 +642,6 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
-            base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            chassis_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            d435_bottom_screw_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_color_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_color_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_depth_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_depth_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_left_ir_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_left_ir_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            d435_right_ir_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_right_ir_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            front_fender_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            front_left_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            front_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            front_right_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            jackal/velodyne/VLP_16:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            jackal/velodyne/VLP_16_base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            jackal/velodyne/gazebo_gt/odometry_sensor_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            mid_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            navsat_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_fender_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_left_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            rear_right_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
           Name: RobotModel
           Robot Description: robot_description
           TF Prefix: ""
@@ -1397,12 +1272,12 @@ Visualization Manager:
           Class: rviz/Map
           Color Scheme: map
           Draw Behind: false
-          Enabled: false
-          Name: VoroMapOrigin
-          Topic: /voronoi_grid_origin
+          Enabled: true
+          Name: voronoi_occupy
+          Topic: /voronoi_grid_occupy
           Unreliable: false
           Use Timestamp: false
-          Value: false
+          Value: true
         - Class: rviz/MarkerArray
           Enabled: true
           Marker Topic: /voronoi_gvg_markers
@@ -1424,13 +1299,13 @@ Visualization Manager:
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
-          Color: 237; 212; 0
-          Enabled: false
+          Color: 25; 255; 0
+          Enabled: true
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.20000000298023224
+          Line Width: 0.10000000149011612
           Name: voronoi_path
           Offset:
             X: 0
@@ -1444,17 +1319,17 @@ Visualization Manager:
           Shaft Length: 0.10000000149011612
           Topic: /voronoi_path
           Unreliable: false
-          Value: false
+          Value: true
         - Alpha: 1
           Buffer Length: 1
           Class: rviz/Path
-          Color: 250; 13; 200
+          Color: 117; 80; 123
           Enabled: true
           Head Diameter: 0.30000001192092896
           Head Length: 0.20000000298023224
           Length: 0.30000001192092896
           Line Style: Billboards
-          Line Width: 0.25
+          Line Width: 0.10000000149011612
           Name: voronoi_path_short
           Offset:
             X: 0
@@ -1469,183 +1344,42 @@ Visualization Manager:
           Topic: /voronoi_path_short
           Unreliable: false
           Value: true
-        - Class: rviz/Marker
+        - Alpha: 0.699999988079071
+          Class: rviz/Map
+          Color Scheme: map
+          Draw Behind: false
+          Enabled: false
+          Name: VoronoiOrigin
+          Topic: /voronoi_grid_origin
+          Unreliable: false
+          Use Timestamp: false
+          Value: false
+        - Alpha: 1
+          Axes Length: 1
+          Axes Radius: 0.10000000149011612
+          Class: rviz/Pose
+          Color: 255; 25; 0
           Enabled: true
-          Marker Topic: /planning_vis/voronoi_topo_path
-          Name: voronoi_topo_paths
-          Namespaces:
-            "": true
-          Queue Size: 100
+          Head Length: 0.30000001192092896
+          Head Radius: 0.10000000149011612
+          Name: Goal
+          Queue Size: 10
+          Shaft Length: 1
+          Shaft Radius: 0.05000000074505806
+          Shape: Arrow
+          Topic: /move_base_simple/goal
+          Unreliable: false
           Value: true
-        - Alpha: 1
-          Buffer Length: 1
-          Class: rviz/Path
-          Color: 255; 85; 0
-          Enabled: false
-          Head Diameter: 0.30000001192092896
-          Head Length: 0.20000000298023224
-          Length: 0.30000001192092896
-          Line Style: Billboards
-          Line Width: 0.10000000149011612
-          Name: test1
-          Offset:
-            X: 0
-            Y: 0
-            Z: 0
-          Pose Color: 255; 85; 255
-          Pose Style: None
-          Queue Size: 10
-          Radius: 0.029999999329447746
-          Shaft Diameter: 0.10000000149011612
-          Shaft Length: 0.10000000149011612
-          Topic: /voronoi_path_test1
-          Unreliable: false
-          Value: false
-        - Alpha: 1
-          Buffer Length: 1
-          Class: rviz/Path
-          Color: 173; 127; 168
-          Enabled: false
-          Head Diameter: 0.30000001192092896
-          Head Length: 0.20000000298023224
-          Length: 0.30000001192092896
-          Line Style: Billboards
-          Line Width: 0.10000000149011612
-          Name: test2
-          Offset:
-            X: 0
-            Y: 0
-            Z: 0
-          Pose Color: 255; 85; 255
-          Pose Style: None
-          Queue Size: 10
-          Radius: 0.029999999329447746
-          Shaft Diameter: 0.10000000149011612
-          Shaft Length: 0.10000000149011612
-          Topic: /voronoi_path_test2
-          Unreliable: false
-          Value: false
       Enabled: true
       Name: VORONOI
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz/Pose
-      Color: 255; 25; 0
+    - Class: rviz/Marker
       Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: Goal
-      Queue Size: 10
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic: /move_base_simple/goal
-      Unreliable: false
+      Marker Topic: /path_execution_node/look_ahead_marker
+      Name: look_ahead_waypoint
+      Namespaces:
+        lookahead: true
+      Queue Size: 100
       Value: true
-    - Class: rviz/Group
-      Displays:
-        - Class: rviz/Marker
-          Enabled: true
-          Marker Topic: /path_execution_node/look_ahead_marker
-          Name: look_ahead_waypoint
-          Namespaces:
-            lookahead: true
-          Queue Size: 100
-          Value: true
-        - Alpha: 1
-          Class: rviz/PointStamped
-          Color: 204; 41; 204
-          Enabled: true
-          History Length: 1
-          Name: look_ahead_goal
-          Queue Size: 10
-          Radius: 0.20000000298023224
-          Topic: /path_execution_node/look_ahead_goal
-          Unreliable: false
-          Value: true
-        - Alpha: 1
-          Buffer Length: 1
-          Class: rviz/Path
-          Color: 36; 237; 250
-          Enabled: true
-          Head Diameter: 0.30000001192092896
-          Head Length: 0.20000000298023224
-          Length: 0.30000001192092896
-          Line Style: Billboards
-          Line Width: 0.4000000059604645
-          Name: selected_path
-          Offset:
-            X: 0
-            Y: 0
-            Z: 0
-          Pose Color: 255; 85; 255
-          Pose Style: None
-          Queue Size: 10
-          Radius: 0.029999999329447746
-          Shaft Diameter: 0.10000000149011612
-          Shaft Length: 0.10000000149011612
-          Topic: /path
-          Unreliable: false
-          Value: true
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Autocompute Value Bounds:
-            Max Value: 0.31030574440956116
-            Min Value: 0.22071093320846558
-            Value: true
-          Axis: Z
-          Channel Name: intensity
-          Class: rviz/PointCloud2
-          Color: 255; 255; 255
-          Color Transformer: AxisColor
-          Decay Time: 0
-          Enabled: false
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Min Color: 0; 0; 0
-          Name: cmu_free_paths
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.009999999776482582
-          Style: Points
-          Topic: /free_paths
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
-          Value: false
-        - Alpha: 1
-          Autocompute Intensity Bounds: true
-          Autocompute Value Bounds:
-            Max Value: 10
-            Min Value: -10
-            Value: true
-          Axis: Z
-          Channel Name: intensity
-          Class: rviz/PointCloud2
-          Color: 255; 255; 255
-          Color Transformer: Intensity
-          Decay Time: 0
-          Enabled: true
-          Invert Rainbow: false
-          Max Color: 255; 255; 255
-          Min Color: 0; 0; 0
-          Name: terrain_map
-          Position Transformer: XYZ
-          Queue Size: 10
-          Selectable: true
-          Size (Pixels): 3
-          Size (m): 0.10000000149011612
-          Style: Flat Squares
-          Topic: /terrain_plannerCloud
-          Unreliable: false
-          Use Fixed Frame: true
-          Use rainbow: true
-          Value: true
-      Enabled: true
-      Name: cmu_local_planner
   Enabled: true
   Global Options:
     Background Color: 255; 253; 224
@@ -1673,7 +1407,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 25.60138702392578
+      Distance: 41.299156188964844
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1681,9 +1415,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -37.76106262207031
-        Y: -34.133975982666016
-        Z: 5.001926183467731e-06
+        X: 7.760056018829346
+        Y: -20.84719467163086
+        Z: -4.163514313404448e-05
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -1691,7 +1425,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 4.712080478668213
+      Yaw: 3.225308895111084
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539
@@ -1796,12 +1530,12 @@ Visualization Manager:
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1016
+  Height: 1043
   Hide Left Dock: false
   Hide Right Dock: false
   Image:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000015b0000035dfc0200000011fb0000001200530065006c0065006300740069006f006e000000003d000000e90000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000a0049006d006100670065010000003d0000010c0000001600fffffffb000000100044006900730070006c006100790073010000014f0000024b000000c900fffffffb0000000a0056006900650077007300000001ef000001ab000000a400fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000001d1000000b50000000000000000fb0000000a0064006500700074006801000002fe000000e60000000000000000fb0000000a0049006d0061006700650100000415000000f80000000000000000fb0000000a0049006d00610067006501000003f4000001190000000000000000fb0000000a0049006d00610067006501000002be0000011d0000000000000000fb0000000a0049006d006100670065000000026d000000cb0000000000000000fb0000000a0049006d0061006700650100000310000000cb0000000000000000000000010000010f00000385fc0200000002fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007380000003bfc0100000002fb0000000800540069006d0065010000000000000738000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000005d70000035d00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000018e00000378fc0200000011fb0000001200530065006c0065006300740069006f006e000000003d000000e90000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb0000000a0049006d006100670065010000003d000001140000001600fffffffb000000100044006900730070006c00610079007301000001570000025e000000c900fffffffb0000000a0056006900650077007300000001ef000001ab000000a400fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000c00430061006d00650072006100000001d1000000b50000000000000000fb0000000a0064006500700074006801000002fe000000e60000000000000000fb0000000a0049006d0061006700650100000415000000f80000000000000000fb0000000a0049006d00610067006501000003f4000001190000000000000000fb0000000a0049006d00610067006501000002be0000011d0000000000000000fb0000000a0049006d006100670065000000026d000000cb0000000000000000fb0000000a0049006d0061006700650100000310000000cb0000000000000000000000010000010f00000385fc0200000002fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007800000003bfc0100000002fb0000000800540069006d0065010000000000000780000003bc00fffffffb0000000800540069006d00650100000000000004500000000000000000000005ec0000037800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Time:
@@ -1810,6 +1544,6 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 1848
-  X: 72
-  Y: 27
+  Width: 1920
+  X: 1920
+  Y: 0

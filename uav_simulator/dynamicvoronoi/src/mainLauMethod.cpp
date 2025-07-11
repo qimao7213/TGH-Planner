@@ -8,9 +8,7 @@ int main(int argc, char** argv) {
 
     VoronoiLayer voronoilayer(nh);
 
-    while (ros::ok()) {
-        ros::spinOnce();
-    }
+    ros::spin();
 
     return 0;
 }
