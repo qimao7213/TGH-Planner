@@ -1,7 +1,13 @@
 <launch>
     <arg name="stateEstimationTopic" default="/car_odom"/>
+    <arg name="max_vel" default="2.0"/>
+    <arg name="max_acc" default="1.5"/>
+
     <include file="$(find local_planner)/launch/local_planner.launch">
         <arg name="stateEstimationTopic" value="$(arg stateEstimationTopic)"/>
+        <arg name="maxSpeed" value="$(arg max_vel)"/>
+        <arg name="autonomySpeed" value="$(arg max_vel)"/>
+        <arg name="maxAccel" value="$(arg max_acc)"/>
     </include>
 
     <include file="$(find terrain_analysis)/launch/terrain_analysis.launch">

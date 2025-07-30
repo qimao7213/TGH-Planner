@@ -5,7 +5,7 @@
     <remap from="/registered_scan" to="/registered_point_cloud"/>
     <remap from="/state_estimation" to="/car_odom"/>
 
-    <param name="scanVoxelSize" type="double" value="0.1" />
+    <param name="scanVoxelSize" type="double" value="0.05" />
     <param name="decayTime" type="double" value="2.0" />
     <param name="noDecayDis" type="double" value="4.0" />
     <param name="clearingDis" type="double" value="8.0" />
@@ -20,7 +20,7 @@
     <param name="minDyObsRelZ" type="double" value="-0.5" />
     <param name="minDyObsVFOV" type="double" value="-16.0" />
     <param name="maxDyObsVFOV" type="double" value="45.0" />
-    <param name="halfFOV" type="double" value="90.0" />
+    <param name="halfFOV" type="double" value="180.0" />
     <param name="minDyObsPointNum" type="int" value="1" />
     <param name="noDataObstacle" type="bool" value="false" />
     <param name="noDataBlockSkipNum" type="int" value="0" />

@@ -11,7 +11,6 @@ Panels:
         - /Mapping1/simulation_map1/Autocompute Value Bounds1
         - /MPC1/mpc_path_ref1
         - /planning_2D1
-        - /planning_2D1/Occp_map_2D1
         - /TF1/Frames1
       Splitter Ratio: 0.5292792916297913
     Tree Height: 865
@@ -351,7 +350,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/topo_path
           Name: TopoPath
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -363,13 +362,13 @@ Visualization Manager:
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
-          Enabled: false
+          Enabled: true
           Marker Topic: /TopoPlan/graph
           Name: TopoSamplePoints
           Namespaces:
             {}
           Queue Size: 100
-          Value: false
+          Value: true
         - Alpha: 0.699999988079071
           Arrow Length: 2
           Axes Length: 0.30000001192092896
@@ -727,7 +726,7 @@ Visualization Manager:
           Draw Behind: false
           Enabled: true
           Name: Occp_map_2D
-          Topic: /map
+          Topic: /sdf_map/occupancy_2D
           Unreliable: false
           Use Timestamp: false
           Value: true
@@ -1042,7 +1041,7 @@ Visualization Manager:
       Unreliable: false
       Value: true
     - Alpha: 0.20000000298023224
-      Buffer Length: 1
+      Buffer Length: 10
       Class: rviz/Path
       Color: 25; 255; 0
       Enabled: true
@@ -1124,7 +1123,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 72.61122131347656
+      Distance: 26.575918197631836
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1132,9 +1131,9 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 19.07025146484375
-        Y: -0.6455860733985901
-        Z: -3.5762786865234375e-06
+        X: -1.497721552848816
+        Y: -3.1547248363494873
+        Z: -2.1457672119140625e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
@@ -1142,7 +1141,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 4.7401018142700195
+      Yaw: 4.710092544555664
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539

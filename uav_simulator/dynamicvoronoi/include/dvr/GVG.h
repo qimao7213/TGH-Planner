@@ -351,10 +351,18 @@ public:
                        // ***如果是2个，且当前strong_node的dis大于阈值，则其肯定还有一个strong_node邻接
                        // 判断当前节点和那个stong_node的角度关系，如果角度小于XX，则将该节点标记为week_node，并将其邻接strong_node加入队列
                        // ***如果是3个，则直接标记为weak_node
+        int skip_border = 10; // 在四个角上的弱节点不处理
         std::queue<GraphNode::Ptr> strong_node_queue;
         for (const auto& graph : graphs_) {
             for (const auto& node : graph) {
                 if (node.second->type == GraphNode::Weak) {
+                    auto pos = node.second->pos;
+                    if ((pos.x < skip_border && (pos.y < skip_border || pos.y >= sizeY_ - skip_border)) || // 左上/左下
+                        (pos.x >= sizeX_ - skip_border && (pos.y < skip_border || pos.y >= sizeY_ - skip_border)) // 右上/右下
+                    ) {
+                        node.second->type = GraphNode::Strong;
+                        continue;
+                    }
                     // 将邻接的强节点加入队列
                     for (const auto& neighbor : node.second->neighbors) {
                         if (auto locked_neighbor = neighbor.lock()) {
@@ -620,10 +628,12 @@ public:
             auto center_node = findNodeInGraphs(cluster_points[0]);
 
             if (!center_node) continue;
-            // if (center_node->pos == IntPoint(358, 442) || 
-            //     center_node->pos == IntPoint(359, 442) ||
-            //     center_node->pos == IntPoint(358, 441) ||
-            //     center_node->pos == IntPoint(359, 441)){
+            // std::cout << "Center nodeXXXX: " << center_node->pos.x << " ," << center_node->pos.y << std::endl;
+            // if (center_node->pos == IntPoint(1447, 480) 
+            //     || center_node->pos == IntPoint(1449, 480) 
+            //     // || center_node->pos == IntPoint(358, 441)
+            //     // || center_node->pos == IntPoint(359, 441)
+            //     ){
             //     std::cout << "Center node: " << center_node->pos.x << " ," << center_node->pos.y << std::endl;
             // }
             DFSSearch2(center_node, cluster_points);
@@ -988,14 +998,37 @@ private:
                     // 如果终点和起点是同一个节点，跳过
                     continue;
                 }
-                // 检查是否已经被添加过了 // TODO：这里如果被添加过了，则更新为更短的路径。
+                // // 检查是否已经被添加过了 // TODO：这里如果被添加过了，则更新为更短的路径。
+                // bool found = false;
+                // for (const auto& nb : current_node->neighbors) {
+                //     if (nb.lock() == end_node) {
+                //         found = true;
+                //         break;
+                //     }
+                // }
                 bool found = false;
-                for (const auto& nb : current_node->neighbors) {
-                    if (nb.lock() == end_node) {
+                for (size_t i = 0; i < current_node->neighbors.size(); ++i) {
+                    auto nb_ptr = current_node->neighbors[i].lock();
+                    if (nb_ptr == end_node) {
                         found = true;
+                        // 如果新路径更短，则更新
+                        if (result.path.path_length < current_node->neighbor_paths[i].path_length) {
+                            current_node->neighbor_paths[i] = result.path;
+                            // 反向也更新
+                            for (size_t j = 0; j < end_node->neighbors.size(); ++j) {
+                                auto back_ptr = end_node->neighbors[j].lock();
+                                if (back_ptr == current_node) {
+                                    Path reverse_path = result.path;
+                                    std::reverse(reverse_path.path.begin(), reverse_path.path.end());
+                                    end_node->neighbor_paths[j] = reverse_path;
+                                    break;
+                                }
+                            }
+                        }
                         break;
                     }
                 }
+
                 if (!found) {
                     // 添加边到 current_node 的邻居列表
                     current_node->neighbors.emplace_back(end_node);

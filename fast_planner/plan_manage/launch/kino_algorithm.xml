@@ -7,6 +7,7 @@
   <arg name="map_size_z_"/>
 
   <arg name="odometry_topic"/>
+  <arg name="perception_odom_topic"/>
   <arg name="perception_data"/>
   <arg name="perception_data_type"/>
   <arg name="camera_frame"/>
@@ -33,7 +34,7 @@
     <remap from = "/odom_world" to="$(arg odometry_topic)"/>
     <remap from = "/sdf_map/odom" to="$(arg odometry_topic)"/>
     <remap from = "/sdf_map/perception_data" to="$(arg perception_data)"/>
-
+    <remap from = "/sdf_map/perception_odom" to="$(arg perception_odom_topic)"/>
     <!-- replanning method -->
     <param name="planner_node/planner" value="1" type="int"/>
 
@@ -42,7 +43,6 @@
     <param name="fsm/thresh_replan" value="2.0" type="double"/> 
     <param name="fsm/thresh_no_replan" value="2.0" type="double"/>
 
-    <param name="fsm/use_teb" value="$(arg use_teb)"/>
 
     <param name="sdf_map/resolution"      value="0.1" /> 
     <param name="sdf_map/map_size_x"   value="$(arg map_size_x_)" /> 
@@ -57,9 +57,10 @@
 
     <!-- map 2D -->
     <param name="sdf_map/need_map_2D"   value="true"/>
-    <param name="sdf_map/height_obs_max_2D_"   value="1.5"/>
+    <param name="sdf_map/height_obs_max_2D_"   value="2.0"/>
     <param name="sdf_map/height_obs_min_2D_"   value="0.3"/>
-    <param name="sdf_map/scan_angle_increment" value="0.02618"/>
+    <param name="sdf_map/scan_angle_increment" value="0.01618"/>
+    <!-- <param name="sdf_map/half_fov" value="0.7"/>  -->
     <!-- <param name="sdf_map/half_fov" value="1.0472"/>  -->
     <param name="sdf_map/half_fov" value="3.14159"/> 
     <!-- camera parameter -->
@@ -134,7 +135,7 @@
     <param name="search_2D/max_acc" value="$(arg max_acc)" type="double"/>
     <param name="search_2D/w_time" value="10.0" type="double"/>
     <param name="search_2D/horizon" value="7.0" type="double"/>
-    <param name="search_2D/lambda_heu" value="1.2" type="double"/>
+    <param name="search_2D/lambda_heu" value="1.1" type="double"/>
     <param name="search_2D/resolution_astar" value="0.1" type="double"/>
     <param name="search_2D/time_resolution" value="0.8" type="double"/>
     <param name="search_2D/margin" value="0.2" type="double"/>
@@ -144,12 +145,12 @@
     
 
     <param name="search_2D/steering_angle" value="$(arg max_steering_angel_)" type="double"/>
-    <param name="search_2D/steering_angle_discrete_num" value="5" type="int"/>
+    <param name="search_2D/steering_angle_discrete_num" value="3" type="int"/>
     <param name="search_2D/vel_discrete_num" value="1" type="int"/>
     <param name="search_2D/wheel_base" value="$(arg wheel_base_)" type="double"/>
-    <param name="search_2D/steering_penalty" value="1.1" type="double"/>
-    <param name="search_2D/steering_change_penalty" value="1.2" type="double"/>
-    <param name="search_2D/reversing_penalty" value="1.3" type="double"/>
+    <param name="search_2D/steering_penalty" value="1.0" type="double"/>
+    <param name="search_2D/steering_change_penalty" value="1.0" type="double"/>
+    <param name="search_2D/reversing_penalty" value="1.0" type="double"/>
     <param name="search_2D/vehicle_length" value="0.3" type="double"/>
     <param name="search_2D/vehicle_width" value="0.3" type="double"/>
     <param name="search_2D/vehicle_rear_dis" value="0.5" type="double"/>
@@ -174,7 +175,7 @@
     <param name="topo_prm/sample_inflate_z" value="0.1" type="double"/>
     <param name="topo_prm/clearance" value="$(arg clearance_all)" type="double"/>
     <param name="topo_prm/clearance_line" value="$(arg clearance_all)" type="double"/>
-    <param name="topo_prm/max_sample_time" value="0.002" type="double"/>
+    <param name="topo_prm/max_sample_time" value="0.005" type="double"/>
     <param name="topo_prm/max_sample_num" value="1000" type="int"/>
     <param name="topo_prm/max_raw_path" value="300" type="int"/>
     <param name="topo_prm/max_raw_path2" value="25" type="int"/>
@@ -187,9 +188,9 @@
   <!-- icra3，非常稠密，所以参数要调。dist0: 0.2, phi_min:0.15  -->
     <param name="optimization/lambda1" value="5.0" type="double"/>
     <param name="optimization/lambda2" value="8.0" type="double"/>
-    <param name="optimization/lambda3" value="0.005" type="double"/>
+    <param name="optimization/lambda3" value="0.002" type="double"/>
     <param name="optimization/lambda4" value="0.01" type="double"/>
-    <param name="optimization/lambda6" value="0.09" type="double"/>
+    <param name="optimization/lambda6" value="0.20" type="double"/>
     <param name="optimization/lambda7" value="500.0" type="double"/>
     <param name="optimization/lambda8" value="0.05" type="double"/>
     <param name="optimization/lambda9" value="0.5" type="double"/>

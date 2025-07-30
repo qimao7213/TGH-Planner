@@ -28,7 +28,7 @@
 // #include <glog/logging.h>
 
 // #define LOG_INFO
-const double thredHalfFOV = 0.587; // cos(40度)^2
+const double thredHalfFOV = 0.766; // cos(40)
 
 // using namespace std;
 namespace fast_planner {
@@ -123,7 +123,7 @@ void BsplineOptimizer::setCostFunction(const int& cost_code) {
   if (cost_function_ & CTRLPTYAWS2) cost_str += " ctrl_pt_yaw_s2 |";
   if (cost_function_ & CTRLPTYAWS3) cost_str += " ctrl_pt_yaw_s3 |";
 
-  ROS_INFO_STREAM("cost func: " << cost_str);
+  // ROS_INFO_STREAM("cost func: " << cost_str);
 }
 
 void BsplineOptimizer::setGuidePath(const vector<Eigen::Vector3d>& guide_pt) { guide_pts_ = guide_pt; }
@@ -198,6 +198,7 @@ Eigen::MatrixXd BsplineOptimizer::BsplineOptimizeTraj(const Eigen::MatrixXd& poi
   // 注意区分，vel_c是c点的速度，用来判断是不是需要调整c点的
   // 而vel_s_bar_是调整点s处的速度，只不过目前还不知道s具体是谁，所以大致设置了一个平均速度
   // ds_bar_是用来寻找s的
+  // 这一部分比较乱，但是最后调整的那个点，是pfov_
   v_c_ = (pc_ - pf_).normalized();
   vel_s_bar_ = bspline_init_.getLength(0.0, tf_, t_sample_) / (tf_ + 1e-5);
   ds_bar_ = R_q_ + 0.5 * vel_s_bar_ * vel_s_bar_ /max_acc_;
@@ -291,7 +292,7 @@ void BsplineOptimizer::optimize() {
 
     double        final_cost;
     nlopt::result result = opt.optimize(q, final_cost); // result check
-    ROS_WARN_STREAM("Opt success by: " << result);
+    // ROS_WARN_STREAM("Opt success by: " << result);
     /* retrieve the optimization result */
     // cout << "Min cost:" << min_cost_ << endl;
     if(cost_function_ & FEASIBILITYYaw) flag_out_ = 1;
@@ -701,6 +702,8 @@ void BsplineOptimizer::calcPerceptionCost(const vector<Eigen::Vector3d>& q, doub
 
   Eigen::Vector3d pfov_new = bspline_traj.evaluateDeBoor(tfov_);
   double pfov_change = (pfov_new - pfov_).norm();
+  // 不能改变太多了
+  if (pfov_change > 0.5) return; 
   // ROS_WARN_STREAM("pfov_change: " << pfov_change);
 
 
@@ -708,7 +711,7 @@ void BsplineOptimizer::calcPerceptionCost(const vector<Eigen::Vector3d>& q, doub
   {
     int id = ctrl_point_idx[i];
     if(id < fix_num_start_ || (id+2) > (q.size() - fix_num_end_)) continue;
-    gradient[id] += -0.1 * v_fov_ * ctrl_point_weights[i] * 20; // 最后一个是权重
+    gradient[id] += -0.1 * v_fov_ * ctrl_point_weights[i] * 30; // 最后一个是权重
   }
   // return;
 
@@ -1213,6 +1216,9 @@ bool BsplineOptimizer::FrontierIntersection()
     return false;
 }
 
+// 找到要被调整的那个关键点pfov_
+// 一个是通过通过fov，一个是通过RAPTOR里介绍的phi_min_
+// 最后取tfov_较小的那个. perception调整的就是pfov_这一项
 bool BsplineOptimizer::CriticalView()
 {
     // 我觉得这个地方不应该是从pf开始往后遍历，而是应该依然从前往后遍历.
@@ -1224,8 +1230,7 @@ bool BsplineOptimizer::CriticalView()
       Eigen::Vector3d path_dir = bspline_pts_[i + 1] - bspline_pts_[i];
       Eigen::Vector3d end_dir  = pf_ - bspline_pts_[i];
       if(end_dir.squaredNorm() > 1.5 * 1.5) break;
-      if(path_dir.dot(end_dir) * path_dir.dot(end_dir)/(path_dir.squaredNorm() * end_dir.squaredNorm()) 
-         < thredHalfFOV)
+      if(path_dir.dot(end_dir) / (path_dir.norm() * end_dir.norm()) < thredHalfFOV)
       {
         pfov_ = bspline_pts_[i];
         tfov_ = i * t_sample_;
@@ -1243,7 +1248,7 @@ bool BsplineOptimizer::CriticalView()
           pc_ = bspline_pts_[i];
           tc_ = i * t_sample_;
           idx_c_ = i;
-          if(tc_ > tfov_)
+          if(tc_ < tfov_)
           {
             tfov_ = tc_;
             pfov_ = pc_;

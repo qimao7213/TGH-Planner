@@ -223,6 +223,13 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
   } else if (mp_.perception_data_type_ == LIDAR_POINT) {
     indep_cloud_sub_ =
     node_.subscribe<sensor_msgs::PointCloud2>("/sdf_map/perception_data", 10, &SDFMap::cloudCallback, this);
+    
+    // 这里的odom_sub_是订阅的传感器的odom，而不是机器人的odom
+    // cloud_sub_.reset(new message_filters::Subscriber<sensor_msgs::PointCloud2>(node_, "/sdf_map/perception_data", 10));
+    // odom_sub_.reset(new message_filters::Subscriber<nav_msgs::Odometry>(node_, "/sdf_map/perception_odom", 100));
+
+    // sync_cloud_odom_.reset(new message_filters::Synchronizer<SyncPolicyCloudOdom>(SyncPolicyCloudOdom(100), *cloud_sub_, *odom_sub_));
+    // sync_cloud_odom_->registerCallback(boost::bind(&SDFMap::cloudOdomCallback, this,_1, _2));
   }
 
   // 固定时间周期更新地图并发布可视化信息
@@ -268,7 +275,7 @@ void SDFMap::initMap(ros::NodeHandle& nh) {
   random_device rd;
   eng_ = default_random_engine(rd());
 }
-
+// 这里一定要修改地图的分辨率，不然报错
 void SDFMap::initMapFromCostMap(ros::NodeHandle& nh)
 {
   topo_test_ = true;
@@ -302,7 +309,9 @@ void SDFMap::CostmapCallback(const nav_msgs::OccupancyGridConstPtr &map_msg)
   z_size = mp_.resolution_;
   x_size = map_msg->info.width * map_msg->info.resolution;
   y_size = map_msg->info.height * map_msg->info.resolution;
-  int resolution_scale = ceil( map_msg->info.resolution/mp_.resolution_);
+  double ratio = map_msg->info.resolution / mp_.resolution_;
+  int resolution_scale = (ratio > 1.0) ? static_cast<int>(round(ratio)) : static_cast<int>(ceil(1.0 / ratio));
+  resolution_scale = std::max(1, resolution_scale);
   mp_.local_update_range_ = Eigen::Vector3d(5.5, 5.5, 4.5);
   mp_.obstacles_inflation_ = 0.009;
   mp_.frame_id_ = "world";
@@ -353,7 +362,10 @@ void SDFMap::CostmapCallback(const nav_msgs::OccupancyGridConstPtr &map_msg)
   map_pub_2D_ = node_.advertise<nav_msgs::OccupancyGrid>("/sdf_map/occupancy_2D", 10);
   esdf_pub_2D_ = node_.advertise<sensor_msgs::PointCloud2>("/sdf_map/esdf_2D", 10);
   map_pub_2D_binary_ = node_.advertise<nav_msgs::OccupancyGrid>("/sdf_map/occupancy_2D_binary", 10);
-  
+  scan_pub_ = node_.advertise<sensor_msgs::LaserScan>("/sdf_map/scan", 10);
+  scan_refined_pub_ = node_.advertise<sensor_msgs::PointCloud2>("/sdf_map/scan_refined", 10);
+  update_region_poly_pub_ = node_.advertise<geometry_msgs::PolygonStamped>("/sdf_map/update_region_poly", 10);
+
   int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
   vector<Eigen::Vector3i> inf_pts;
   if(mp_.need_map_2D_) inf_pts.resize(pow(2 * inf_step + 1, 2));
@@ -407,6 +419,7 @@ void SDFMap::CostmapCallback(const nav_msgs::OccupancyGridConstPtr &map_msg)
   md_.local_bound_max_ = mp_.map_voxel_num_ - Eigen::Vector3i::Ones();
   updateESDF2d();
   has_costmap_ = true;
+  ROS_WARN("Costmap Callback Success!");
 }
 
 // rest整个地图
@@ -977,6 +990,11 @@ void SDFMap::raycastProcess() {
   RayCaster raycaster;
   Eigen::Vector3d half = Eigen::Vector3d(0.5, 0.5, 0.5);
   Eigen::Vector3d ray_pt, pt_w;
+  Eigen::Vector3d camera_pos = md_.camera_pos_;
+  std::sort(md_.proj_points_.begin(), md_.proj_points_.end(),
+  [&camera_pos](const Eigen::Vector3d& a, const Eigen::Vector3d& b) {
+      return (a - camera_pos).squaredNorm() > (b - camera_pos).squaredNorm();
+  });
 
   for (int i = 0; i < md_.proj_points_cnt; ++i) {
     pt_w = md_.proj_points_[i];
@@ -1004,7 +1022,7 @@ void SDFMap::raycastProcess() {
         vox_idx = setCacheOccupancy(pt_w, 1);
       }
     }
-    md_.proj_points_[i] = pt_w; // 更新投影点到地图坐标系下
+    // md_.proj_points_[i] = pt_w; // 更新投影点到地图坐标系下
     max_x = max(max_x, pt_w(0));
     max_y = max(max_y, pt_w(1));
     max_z = max(max_z, pt_w(2));
@@ -1024,7 +1042,7 @@ void SDFMap::raycastProcess() {
       }
     }
     Eigen::Vector3d dir = (pt_w - md_.camera_pos_).normalized();
-    raycaster.setInput((pt_w) / mp_.resolution_, md_.camera_pos_ / mp_.resolution_);
+    raycaster.setInput((pt_w - 1 * dir * mp_.resolution_) / mp_.resolution_, md_.camera_pos_ / mp_.resolution_);
 
     int iter = 0;
     //在这条射线上，以half的距离向前遍历
@@ -1190,8 +1208,8 @@ void SDFMap::densifyScanPoints(const sensor_msgs::LaserScan& scan_pt,
       double dist_to_line = ((v1.cross(v2)).norm() / v1.norm()) / (0.5 * (v2.norm() + v3.norm()));
       // bool is_colinear = (v1.cross(v2).norm() / v1.norm() < 0.05) && (dist > 4 * max_dist);
 
-
-      if (dist_to_line < 0.15 && dist > 6 * max_dist) {
+      // TODO: 这里还可以加入，v1和其他点的夹角判断。
+      if (dist_to_line < 0.2 && dist > 6 * max_dist) {
         // 如果两点共线，直接跳过当前点
         dense_points.push_back(pt);
         last_pt = pt;
@@ -1275,6 +1293,11 @@ void SDFMap::raycastProcess2D() {
   // ---------------------- //
 
   // ---------------------- //
+  std::sort(md_.scan_pt_refined_.begin(), md_.scan_pt_refined_.end(),
+    [&pos](const Eigen::Vector3d& a, const Eigen::Vector3d& b) {
+        return (a - pos).squaredNorm() > (b - pos).squaredNorm();
+    });
+
   for (int i = 0; i < md_.scan_pt_refined_.size(); ++i) {
     ray_pt = md_.scan_pt_refined_[i];
   // ---------------------- //
@@ -1398,7 +1421,7 @@ void SDFMap::raycastProcess2D() {
     //
     //如果是占据，则log_odds_update大于0；否则小于0
     double log_odds_update =
-        md_.count_hit_2D_[idx_ctns] >= md_.count_hit_and_miss_2D_[idx_ctns] - md_.count_hit_2D_[idx_ctns] ? //判断这个voxel是占据 or free
+        md_.count_hit_2D_[idx_ctns] >= md_.count_hit_and_miss_2D_[idx_ctns] - 1 * md_.count_hit_2D_[idx_ctns] ? //判断这个voxel是占据 or free
         mp_.prob_hit_log_ :
         mp_.prob_miss_log_;
 
@@ -1596,7 +1619,7 @@ void SDFMap::clearAndInflateLocalMap2D() {
   //       md_.occupancy_buffer_inflate_2D_[toAddress2D(x, y)] = 0;
   // }
 
-  int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
+  int inf_step = ceil(-0.01 / mp_.resolution_);
   // int inf_step_z = 1;
   vector<Eigen::Vector3i> inf_pts;
   if(inf_step == 0) inf_pts.resize(1);
@@ -1790,7 +1813,7 @@ void SDFMap::updateESDFCallback(const ros::TimerEvent& /*event*/) {
   // TODO: 如果我把3d的关掉会怎么样呢
   // updateESDF3d();
   if(mp_.need_map_2D_)
-    // updateESDF2d();
+    updateESDF2d();
   t2 = ros::Time::now();
 
   md_.esdf_time_ += (t2 - t1).toSec();
@@ -1836,6 +1859,89 @@ void SDFMap::depthPoseCallback(const sensor_msgs::ImageConstPtr& img,
   }
 }
 
+void SDFMap::cloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt,
+                               const nav_msgs::OdometryConstPtr& odom) {
+  // 将点云从 ROS 消息转换为 PCL 格式
+  pcl::PointCloud<pcl::PointXYZ> latest_cloud, latest_cloud_world, latest_cloud_base;
+  pcl::fromROSMsg(*lidar_pt, latest_cloud);
+  md_.sensor_time_ = lidar_pt->header.stamp;
+
+  // 用 odom 的位姿作为 lidar 在 world 下的位姿
+  Eigen::Vector3d lidar_position;
+  lidar_position.x() = odom->pose.pose.position.x;
+  lidar_position.y() = odom->pose.pose.position.y;
+  lidar_position.z() = odom->pose.pose.position.z;
+  Eigen::Quaterniond lidar_orientation(
+      odom->pose.pose.orientation.w,
+      odom->pose.pose.orientation.x,
+      odom->pose.pose.orientation.y,
+      odom->pose.pose.orientation.z);
+
+  // 构造 world 坐标系下的变换
+  Eigen::Affine3d tf_world = Eigen::Translation3d(lidar_position) * lidar_orientation;
+  pcl::transformPointCloud(latest_cloud, latest_cloud_world, tf_world);
+
+  // 用传感器在 base_link 下的相对位姿做变换（如有需要）
+  Eigen::Vector3d sensor_position_base = Eigen::Vector3d(0, 0, mp_.sensor_on_base_pos_(2));
+  Eigen::Quaterniond sensor_orientation_base = mp_.sensor_on_base_q_;
+  Eigen::Affine3d tf_base = Eigen::Translation3d(sensor_position_base) * sensor_orientation_base;
+  pcl::transformPointCloud(latest_cloud, latest_cloud_base, tf_base);
+
+  // 临时坐标系在world下的变换
+  Eigen::Affine3d tf_scan_in_world = tf_world * tf_base.inverse();
+  md_.scan_q_ = tf_scan_in_world.rotation();
+  md_.scan_pos_ = tf_scan_in_world.translation();
+
+  // 更新状态
+  md_.has_cloud_ = true;
+  md_.proj_points_cnt = 0;
+
+  // 更新相机的位置信息
+  md_.camera_pos_ = lidar_position;
+  md_.camera_q_ = lidar_orientation;
+
+  // 点云处理（和 cloudCallback 一致）
+  if (isInMap(md_.camera_pos_)) {
+    md_.has_odom_ = true;
+    md_.update_num_ += 1;
+    md_.occ_need_update_ = true;
+  } else {
+    md_.occ_need_update_ = false;
+    return;
+  }
+
+  if (latest_cloud_world.points.size() == 0) return;
+
+  Eigen::Matrix3d lidar_rotation = lidar_orientation.toRotationMatrix();
+  pcl::PointXYZ pt_local, pt_world;
+  Eigen::Vector3d p3d_world, p3d_local;
+  int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
+
+  for (size_t i = 0; i < latest_cloud_world.points.size(); ++i) {
+    pt_world = latest_cloud_world.points[i];
+    pt_local = latest_cloud_base.points[i];
+
+    p3d_local.x() = pt_local.x;
+    p3d_local.y() = pt_local.y;
+    p3d_local.z() = pt_local.z;
+    p3d_world.x() = pt_world.x;
+    p3d_world.y() = pt_world.y;
+    p3d_world.z() = pt_world.z;
+    double pt_dis = p3d_local.norm();
+    if(pt_dis > (mp_.max_ray_length_ + 0.1)) {
+      p3d_local = (p3d_local) / pt_dis * (mp_.max_ray_length_ + 0.1);
+      // p3d_world = lidar_rotation * p3d_local + md_.camera_pos_;
+    }
+    md_.proj_points_[md_.proj_points_cnt++] = p3d_world;
+    md_.proj_points_local_[md_.proj_points_cnt - 1] = p3d_local;
+  }
+
+  if (md_.proj_points_cnt == 0) return;
+  pointcloudToLaserScan(md_.proj_points_local_, md_.scan_pt_,
+                        -M_PI, M_PI, mp_.scan_angle_increment_,
+                        mp_.min_ray_length_, mp_.max_ray_length_, mp_.height_obs_min_2D_ + 0.3,
+                        mp_.height_obs_max_2D_ + 0.3, false, 0.1);
+}
 
 void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt) {
   // ROS_INFO("cloud callback");
@@ -1901,12 +2007,21 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt) {
   // 膨胀参数
   int inf_step = ceil(mp_.obstacles_inflation_ / mp_.resolution_);
   int inf_step_z = 1;
-
+  double pt_angle;
   // 遍历点云
   for (size_t i = 0; i < latest_cloud_world.points.size(); ++i) {
     // 获取点云中的点
     pt_world = latest_cloud_world.points[i];
     pt_local = latest_cloud_base.points[i];
+
+    // float pt_angle = atan2(pt_local.x, pt_local.y);
+    // // 归一化到[-pi, pi]
+    // while (pt_angle > M_PI) pt_angle -= 2 * M_PI;
+    // while (pt_angle < -M_PI) pt_angle += 2 * M_PI;
+
+    // // 只保留[-halfFOV, halfFOV]范围内的点
+    // if (pt_angle < -mp_.half_fov_ || pt_angle > mp_.half_fov_)
+    //     continue;
     p3d_local.x() = pt_local.x;
     p3d_local.y() = pt_local.y;
     p3d_local.z() = pt_local.z;
@@ -1917,15 +2032,15 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt) {
     if(pt_dis > (mp_.max_ray_length_ + 0.1))
     {
       p3d_local = (p3d_local) / pt_dis * (mp_.max_ray_length_ + 0.1);//缩放到raycast的范围内
-      p3d_world = lidar_rotation * p3d_local + md_.camera_pos_;
+      // p3d_world = lidar_rotation * p3d_local + md_.camera_pos_;
     }    
     
     md_.proj_points_[md_.proj_points_cnt++] = p3d_world;
     md_.proj_points_local_[md_.proj_points_cnt - 1] = p3d_local;
     // 判断点是否在地图内部
-    if (!isInMap(p3d_world)) {
-      continue; // 如果点不在地图内部，舍弃
-    }
+    // if (!isInMap(p3d_world)) {
+    //   continue; // 如果点不在地图内部，舍弃
+    // }
     // // 膨胀点
     // for (int x = -inf_step; x <= inf_step; ++x) {
     //   for (int y = -inf_step; y <= inf_step; ++y) {
@@ -2228,7 +2343,7 @@ void SDFMap::publishMap2D() {
   static const int check_idx = toAddress2D(check_coord);
   char map_value_last = md_.occpancy_map_2D_.data[check_idx];
   // std::fill(md_.occpancy_map_2D_.data.begin(), md_.occpancy_map_2D_.data.end(), 125); 
-  // std::fill(md_.occpancy_map_2D_binary_.data.begin(), md_.occpancy_map_2D_binary_.data.end(), 0); 
+  std::fill(md_.occpancy_map_2D_binary_.data.begin(), md_.occpancy_map_2D_binary_.data.end(), 0); 
   boundIndex(min_cut);  
   boundIndex(max_cut);
   for (int y = min_cut(1); y <= max_cut(1); ++y)

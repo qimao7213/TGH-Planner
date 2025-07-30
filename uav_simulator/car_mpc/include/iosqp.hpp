@@ -21,8 +21,10 @@ class IOSQP {
             pData(nullptr) {
     pSettings = (OSQPSettings *)c_malloc(sizeof(OSQPSettings));
     pData = (OSQPData *)c_malloc(sizeof(OSQPData));
-    if (pSettings)
+    if (pSettings) {
       osqp_set_default_settings(pSettings);
+      pSettings->verbose = false;  // 禁止打印优化信息
+    }
   }
 
   ~IOSQP() {

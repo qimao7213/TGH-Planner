@@ -558,7 +558,7 @@ double KinodynamicAstar2D::estimateHeuristic(Eigen::VectorXd x1, Eigen::VectorXd
   optimal_time = 0.0;
   // 这里加入JPS路径or Topo路径作为引导
   // 这里的H项还需要进一步设计
-  if(0)
+  if(topo_path_.size() >= 2)
   {
     std::vector<int> pointIdxNKNSearch(1);
     std::vector<float> pointNKNSquaredDistance(1);
@@ -569,7 +569,8 @@ double KinodynamicAstar2D::estimateHeuristic(Eigen::VectorXd x1, Eigen::VectorXd
     float nearDistance = std::sqrt(pointNKNSquaredDistance[0]);
     if(nearDistance > 0.4) 
     {
-      h_topo = topo_path_distance_[pointIdxNKNSearch[0]] + nearDistance;
+      h_topo = topo_path_distance_[pointIdxNKNSearch[0]] + 2 * nearDistance;
+      // h_topo = 100000;
     }
     else
     {
@@ -1118,10 +1119,12 @@ double KinodynamicAstar2D::calScaleFactor(const double& t, const double & v0, co
   }
   double acc_normal = v_tmp * v_tmp * curv_tmp ;
   double sacle_factor = 1.0;
-  if((acc_normal * acc_normal + acc_tang * acc_tang) > max_acc_ * max_acc_)
+  double acc_norm_2 = 0.12 * acc_normal * acc_normal + acc_tang * acc_tang; 
+  if((acc_norm_2) > 1 * max_acc_ * max_acc_)
   {
     // TODO：这个开起来，会导致速度下降，角速度约束优化的时候出现问题
-    sacle_factor = pow(max_acc_ * max_acc_ / (acc_normal * acc_normal + acc_tang * acc_tang), 1.0/10.0);
+    sacle_factor = pow(max_acc_ * max_acc_ / (acc_norm_2), 1.0/10.0);
+    // std::cout << "sacle_factor: " << sacle_factor << std::endl;
   }
   return sacle_factor;
 }

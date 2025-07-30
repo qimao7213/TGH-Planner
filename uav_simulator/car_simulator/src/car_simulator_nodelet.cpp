@@ -79,7 +79,7 @@ class Nodelet : public nodelet::Nodelet {
   ros::Timer sim_timer_, sim_timer2_;
   ros::ServiceServer set_init_pose_srv_;
   ros::Publisher mpc_pause_pub_;
-
+  ros::Publisher state_vel_pub_;
   bool has_path_ = false;
   Eigen::Vector4d initS_; //x, y, yaw, vel
   struct DelayedMsg {
@@ -146,7 +146,8 @@ class Nodelet : public nodelet::Nodelet {
     odom_msg.twist.twist.linear.x = v * cos(phi);
     odom_msg.twist.twist.linear.y = v * sin(phi);
     odom_msg.twist.twist.linear.z = 0.0;
-
+    if(!use_teb_) odom_msg.twist.twist.angular.z = v / car.l * tan(input_(1)); // 角速度
+    else odom_msg.twist.twist.angular.z = input_(1); // cmd_vel直接用角速度
     odom_pub_.publish(odom_msg);
 
     tf::Transform transform;
@@ -163,6 +164,11 @@ class Nodelet : public nodelet::Nodelet {
     transform_broadcaster.sendTransform(tf::StampedTransform(transform,
                                                               ros::Time::now(), "/world",
                                                               "/base_link"));
+    // {
+    //   std_msgs::Float64 state_vel_msg;
+    //   state_vel_msg.data = (car.state(3));
+    //   state_vel_pub_.publish(state_vel_msg);
+    // }
   }
 
   // 用来打印实时状态
@@ -219,7 +225,7 @@ class Nodelet : public nodelet::Nodelet {
 
     odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom_test", 100); //这个需要改掉
     if(use_teb_)
-      cmd_sub_ = nh.subscribe<geometry_msgs::Twist>("/cmd_vel", 100, &Nodelet::cmdTebVelCallback, this, ros::TransportHints().tcpNoDelay());
+      cmd_sub_ = nh.subscribe<geometry_msgs::Twist>("cmd_ros", 100, &Nodelet::cmdTebVelCallback, this, ros::TransportHints().tcpNoDelay());
     else
       cmd_sub_ = nh.subscribe<car_msgs::CarCmd>("cmd", 100, &Nodelet::cmd_callback, this, ros::TransportHints().tcpNoDelay());
     // 以400hz的频率一直在更新state。
@@ -228,7 +234,7 @@ class Nodelet : public nodelet::Nodelet {
     sim_timer2_ = nh.createTimer(ros::Duration(0.1), &Nodelet::timer_callback2, this);
     set_init_pose_srv_ = nh.advertiseService("set_init_pose", &Nodelet::set_pose, this);
     mpc_pause_pub_     = nh.advertise<std_msgs::Empty>("mpc_pause", 10);
-
+    state_vel_pub_     = nh.advertise<std_msgs::Float64>("/car_simulator/state_vel_simulator", 10);
   }
 };
 }  // namespace car_simulator

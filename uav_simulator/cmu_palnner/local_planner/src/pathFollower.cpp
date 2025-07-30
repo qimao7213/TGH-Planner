@@ -96,6 +96,11 @@ bool pathInit = false;
 bool navFwd = true;
 double switchTime = 0;
 
+Eigen::Vector3d lastest_goal_;
+bool arrive_goal_ = false;
+bool arrive_goal_pos_ = false;
+bool near_goal_ = false;
+
 nav_msgs::Path path;  //这个应该是在全局坐标系下的？得看看是谁发布的，我感觉像是在机器人坐标系下的
 
 void odomHandler(const nav_msgs::Odometry::ConstPtr &odomIn) {
@@ -187,6 +192,25 @@ void suspendHandler(const std_msgs::Bool::ConstPtr &suspend) {
     suspendVel = suspend->data;
 }
 
+void goalHandler(const geometry_msgs::PoseStampedConstPtr& msg)
+{
+  Eigen::Vector3d goal(msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+
+  Eigen::Quaterniond goal_orient;
+  goal_orient.w() = msg->pose.orientation.w;
+  goal_orient.x() = msg->pose.orientation.x;
+  goal_orient.y() = msg->pose.orientation.y;
+  goal_orient.z() = msg->pose.orientation.z;
+  Eigen::Vector3d rot_x = goal_orient.toRotationMatrix().block(0, 0, 3, 1);
+  goal.z() = atan2(rot_x(1), rot_x(0));
+
+  lastest_goal_ = goal;
+  arrive_goal_ = false;
+  arrive_goal_pos_ = false;
+  near_goal_ = false;
+}
+
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "pathFollower");
     ros::NodeHandle nh;
@@ -237,6 +261,8 @@ int main(int argc, char **argv) {
 
     ros::Subscriber subSuspend = nh.subscribe<std_msgs::Bool>("/suspend", 5, suspendHandler);
 
+    ros::Subscriber subGoal = nh.subscribe<geometry_msgs::PoseStamped> ("/move_base_simple/goal", 5, goalHandler);
+
     ros::Publisher pubSpeed = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 5);
     geometry_msgs::Twist cmd_vel;
 
@@ -247,12 +273,62 @@ int main(int argc, char **argv) {
         else if (joySpeed > 1.0) joySpeed = 1.0;
     }
 
-    ros::Rate rate(20);  //下面哪些参数里面的20，应该是对应这里的20Hz频率吧
+    double cmd_rate = 100.0;
+    ros::Rate rate(cmd_rate);
     bool status = ros::ok();
     while (status) {
         ros::spinOnce();
 
         if (pathInit) {
+
+            if (arrive_goal_)
+            {
+                // ROS_WARN("Arrived at goal, waiting for new goal.");
+                cmd_vel.linear.x = 0;
+                cmd_vel.angular.z = 0;
+                pubSpeed.publish(cmd_vel);
+                status = ros::ok();
+                rate.sleep();
+                continue;
+            }
+            double dxGoal = vehicleX - lastest_goal_.x();
+            double dyGoal = vehicleY - lastest_goal_.y();
+            double dist_to_goal = sqrt(dxGoal * dxGoal + dyGoal * dyGoal);
+            if (!arrive_goal_pos_ && dist_to_goal < 0.2) {
+                arrive_goal_pos_ = true;
+                near_goal_ = true; // 表示已经到了目标周围，后续的终点就直接设置为goal。这是防止arrive_goal_pos_判定之后，又晃来晃去到不了终点
+            }
+            else
+            {
+                arrive_goal_pos_ = false;
+            }
+            if (arrive_goal_pos_) {
+
+                // ROS_WARN("Arrived at goal position, waiting for orientation to match goal orientation.");
+                // 停止移动
+                cmd_vel.linear.x = 0;
+
+                // 计算朝向差
+                double goal_yaw = lastest_goal_.z();
+                double yaw_diff = goal_yaw - vehicleYaw;
+                // 归一化到[-PI, PI]
+                while (yaw_diff > PI) yaw_diff -= 2 * PI;
+                while (yaw_diff < -PI) yaw_diff += 2 * PI;
+
+                // 如果朝向差大于阈值，原地旋转
+                if (fabs(yaw_diff) > 2.0/57.3) {
+                    cmd_vel.angular.z = 0.5 * yawRateGain * yaw_diff;
+                    cmd_vel.angular.z = std::max(-1.0, std::min(1.0, cmd_vel.angular.z));
+                } else {
+                    cmd_vel.angular.z = 0;
+                    arrive_goal_ = true; // 这个是最终的判断，这个为true了，就不再发布速度了，只有当新的goal进来才会重置
+                }
+                pubSpeed.publish(cmd_vel);
+                status = ros::ok();
+                rate.sleep();
+                continue;
+            }
+
             // 当前车辆相对于该path进来时的位置，并且已经转到了path进来时的坐标系下
             float vehicleXRel = cos(vehicleYawRec) * (vehicleX - vehicleXRec)
                                 + sin(vehicleYawRec) * (vehicleY - vehicleYRec);
@@ -307,7 +383,7 @@ int main(int argc, char **argv) {
                 joySpeed2 *= -1;
             }
 
-            if (fabs(vehicleSpeed) < 2.0 * maxAccel / 20.0) vehicleYawRate = -stopYawRateGain * dirDiff;
+            if (fabs(vehicleSpeed) < 2.0 * maxAccel / cmd_rate) vehicleYawRate = -stopYawRateGain * dirDiff;
             else vehicleYawRate = -yawRateGain * dirDiff; 
 
             if (vehicleYawRate > maxYawRate * PI / 180.0) vehicleYawRate = maxYawRate * PI / 180.0;
@@ -330,13 +406,26 @@ int main(int argc, char **argv) {
             else if (odomTime < slowInitTime + slowTime1 + slowTime2 && slowInitTime > 0)
                 joySpeed3 *= slowRate2; 
 
-            if (fabs(dirDiff) < dirDiffThre && dis > stopDisThre) { 
-                if (vehicleSpeed < joySpeed3) vehicleSpeed += maxAccel / 20.0; 
-                else if (vehicleSpeed > joySpeed3) vehicleSpeed -= maxAccel / 20.0; 
+            if (fabs(dirDiff) < dirDiffThre && dis > stopDisThre) {
+                if (vehicleSpeed < joySpeed3) vehicleSpeed += maxAccel / cmd_rate;
+                else if (vehicleSpeed > joySpeed3) vehicleSpeed -= maxAccel / cmd_rate;
             } else { 
-                if (vehicleSpeed > 0) vehicleSpeed -= speeddownGain * maxAccel / 20.0; 
-                else if (vehicleSpeed < 0) vehicleSpeed += maxAccel / 20.0; 
+                if (vehicleSpeed > 0) {
+                    // 减速力度与 dist_to_goal 成正比，防止提前停止
+                    double deceleration_factor = std::max(0.1, dist_to_goal / 0.8); // 确保最小减速力度
+                    vehicleSpeed -= maxAccel * (dist_to_goal < 0.8 ? 1.6 : 1.0) / cmd_rate;
+                } else if (vehicleSpeed < 0) {
+                    // 同样对反向速度进行平滑减速
+                    double deceleration_factor = std::max(0.1, dist_to_goal / 0.8); // 确保最小减速力度
+                    vehicleSpeed += maxAccel * (dist_to_goal < 0.8 ? 1.6 : 1.0) / cmd_rate;
+                }
             }
+
+            // if (near_goal_)
+            // {
+            //     if (vehicleSpeed > 0) vehicleSpeed = 0.5 * dist_to_goal;
+            //     else if (vehicleSpeed < 0) vehicleSpeed = -0.5 * dist_to_goal;
+            // }
 
             if (odomTime < stopInitTime + stopTime && stopInitTime > 0) {
                 vehicleSpeed = 0;
@@ -348,7 +437,7 @@ int main(int argc, char **argv) {
 
             pubSkipCount--;
             if (pubSkipCount < 0) {
-                if (fabs(vehicleSpeed) <= maxAccel / 20.0)
+                if (fabs(vehicleSpeed) <= maxAccel / cmd_rate)
                     cmd_vel.linear.x = 0;
                 else
                     cmd_vel.linear.x = vehicleSpeed;

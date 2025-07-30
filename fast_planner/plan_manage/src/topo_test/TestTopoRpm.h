@@ -18,9 +18,9 @@
 using namespace fast_planner;
 using namespace std;
 
-const double origin_x_ = -4;
-const double origin_y_ = -4;
-const int imgHeight = 800;
+const double origin_x_ = -10;
+const double origin_y_ = -10;
+const int imgHeight = 1000;
 
 Eigen::Vector2i worldToPixel(double world_x, double world_y, double resolution) {
     int pixel_x = static_cast<int>((world_x - origin_x_) / resolution);
@@ -103,7 +103,7 @@ public:
         start_publisher_ = nh.advertise<geometry_msgs::PoseStamped>("/start_pose", 10);
         end_publisher_ = nh.advertise<geometry_msgs::PoseStamped>("/goal_pose", 10);
 
-        record_file_.open("/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/fast_planner/plan_manage/maps/record_data/record_data.txt", std::ios::out);
+        record_file_.open("/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/fast_planner/plan_manage/maps/record_data/record_data.txt", std::ios::out);
         if(!record_file_.is_open())
         {
             ROS_ERROR("Unable to open file to save traj info!");
@@ -127,7 +127,8 @@ public:
                                tf::getYaw(start_pose.pose.pose.orientation);
             }else{
                 // start_state << -8.86, -1.3, 0.0; // map_dense
-                start_state << -10.0, 7.7, 0.0; // map_maze
+                // start_state << -10.0, 7.7, 0.0; // map_maze
+                start_state << -10.6, -5, 0.0; // map_dense
             }
             if(goal_pose.header.stamp != ros::Time(0)){
                 goal_state << goal_pose.pose.position.x, 
@@ -137,7 +138,8 @@ public:
             // else
             {
                 // goal_state << 9.54, -0.3, 0.0;     // map_dense 
-                goal_state << 12.3, -8.3, 0.0; // map_maze                          
+                // goal_state << 12.3, -8.3, 0.0; // map_maze    
+                goal_state << 10.5, 5, 0.0;     // map_dense                       
             }
 
 
@@ -257,6 +259,7 @@ public:
         }
         // 关闭文件
         outFile.close();
+        ROS_WARN("Finish compute Traj ESDF.");
     }
 private:
     ros::Publisher start_publisher_;

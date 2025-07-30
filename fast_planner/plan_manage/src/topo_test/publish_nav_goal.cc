@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
     obs_pts[6] << 3, 2.7, 0;
 
     bool pub_obs = false;
-    pub_obs = true;
+    // pub_obs = true;
     // 循环发布 160 次
     for (int i = 0; i < 100; ++i) {
         if (!ros::ok()) {
@@ -64,7 +64,7 @@ int main(int argc, char** argv) {
         goal.pose.orientation.w /= norm;
 
         // 发布目标点
-        // ROS_INFO("Publishing goal %d/150: [x: %.2f, y: %.2f]", i + 1, goal.pose.position.x, goal.pose.position.y);
+        ROS_INFO("Publishing goal %d/150: [x: %.2f, y: %.2f]", i + 1, goal.pose.position.x, goal.pose.position.y);
         ROS_INFO_STREAM("Iter: " << i);
         goal_pub.publish(goal);
 

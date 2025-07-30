@@ -16,16 +16,26 @@ int main(int argc, char** argv) {
     int iter = 0; 
     ros::Rate rate(10);
     while (ros::ok()) {
+        if (iter == 3) 
+        {
+            int debug = 0;
+        }
+        ros::spinOnce();
         test_topo_rpm.run();
-
+        // std::cout << "iter:" << iter << std::endl;
         // 用来计算一段轨迹的esdf值。需要的时候就打开使用
         // if(iter == 20)
         // {
-        //     std::string trajFilePah = "/home/bhrqhb/catkin_ws_fast_planner_sim/src/Fast-Planner/test/traj_record/experiment/perception/faster_uav3";
-        //     test_topo_rpm.calTrajESDF(trajFilePah);
+        //     for (int i = 0; i < 10; ++i)
+        //     {
+        //         std::string trajFilePah = "/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/test/traj_record/data/TGH_highhigh/traj" + to_string(i);
+        //         test_topo_rpm.calTrajESDF(trajFilePah);   
+        //         int debug = 0;             
+        //     }
+
         // }
         iter++;
-        ros::spinOnce();
+        
         rate.sleep();
     }
     test_topo_rpm.close_file();

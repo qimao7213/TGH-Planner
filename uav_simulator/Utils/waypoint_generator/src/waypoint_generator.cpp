@@ -200,8 +200,8 @@ void odom_callback(const nav_msgs::Odometry::ConstPtr& msg) {
         const auto& odom_pose = odom.pose.pose;
         const auto& odom_linear_v = odom.twist.twist.linear;
         int waypt_idx = max(current_wp_ - 1, 0);
-        double dis_error = (Eigen::Vector3d(odom_pose.position.x, odom_pose.position.y, odom_pose.position.z)
-                           - waypoints_2d_[waypt_idx].head(3)).norm();
+        double dis_error = (Eigen::Vector2d(odom_pose.position.x, odom_pose.position.y)
+                           - waypoints_2d_[waypt_idx].head(2)).norm();
         double yaw_error = quaternion_to_yaw(Eigen::Quaterniond(odom_pose.orientation.w, odom_pose.orientation.x,
                            odom_pose.orientation.y, odom_pose.orientation.z)) - waypoints_2d_[waypt_idx](5);
         yaw_error = Mod2Pi(yaw_error);

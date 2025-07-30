@@ -1,7 +1,7 @@
 # image: 115_indoor.pgm
 # resolution: 0.3
 
-image: circles.png
+image: mapUniform.png
 resolution: 0.1
 origin: [ 0.0, 0.0, 0.0 ]
 occupied_thresh: 0.1

@@ -115,7 +115,7 @@ void TopologyPRM::init(ros::NodeHandle& nh) {
   grah_vis_pub_ = nh.advertise<visualization_msgs::Marker>("/TopoPlan/graph", 20);
   sampled_points_.reserve(max_sample_num_);
   skip_scale_ = ((clearance_line_ * 1.414) / resolution_);
-  use_skip_ = true;
+  use_skip_ = true;//是否使用EUVD
   threadPool_ = std::make_shared<ThreadPool>(std::thread::hardware_concurrency());
   for (int i = 0; i < max_raw_path_; ++i) {
     casters_.push_back(RayCaster());
@@ -159,7 +159,7 @@ void TopologyPRM::initForTest(ros::NodeHandle& nh) {
   path_2_pub_ = nh.advertise<nav_msgs::Path>("/TopoPlan/path_2", 10);
   path_3_pub_ = nh.advertise<nav_msgs::Path>("/TopoPlan/path_3", 10);
   skip_scale_ = ((clearance_line_ * 1.414) / resolution_);
-  use_skip_ = true;
+  use_skip_ = true; // 是否使用EUVD
   topo_test_ = true;
   for (int i = 0; i < max_raw_path_; ++i) {
     casters_.push_back(RayCaster());
@@ -317,21 +317,21 @@ list<GraphNode::Ptr> TopologyPRM::createGraph(Eigen::Vector3d start, Eigen::Vect
     sample_num < max_sample_num_) {
     t1 = ros::Time::now();
 
-    if(isFirstRun)
-    {
-      if(sample_num < sampled_points_.size())
-      {
-        pt = sampled_points_[sample_num];
-      }
-      else
-      {
-        pt = getSample();
-      }
-    }
-    else
-    {
-      pt = getSample();
-    }
+    // if(isFirstRun)
+    // {
+    //   if(sample_num < sampled_points_.size())
+    //   {
+    //     pt = sampled_points_[sample_num];
+    //   }
+    //   else
+    //   {
+    //     pt = getSample();
+    //   }
+    // }
+    // else
+    // {
+    //   pt = getSample();
+    // }
     pt = getSample();
     // pt.z() = ground_height_;
     // 下面这一段是用Edge的采样点。现在不使用这个方法
@@ -353,7 +353,7 @@ list<GraphNode::Ptr> TopologyPRM::createGraph(Eigen::Vector3d start, Eigen::Vect
     // else pt = getSample();
     // 上面这一段是用Edge的采样点。现在不使用这个方法
 
-    if(!topo_test_ && !edt_environment_->sdf_map_->isInMap2D(Eigen::Vector2d(pt.x(), pt.y()), 0.5))
+    if(!edt_environment_->sdf_map_->isInMap2D(Eigen::Vector2d(pt.x(), pt.y()), 0.5))
     {
       sample_time += (ros::Time::now() - t1).toSec();
       continue;
@@ -417,7 +417,7 @@ vector<GraphNode::Ptr> TopologyPRM::findVisibGuard(Eigen::Vector3d pt) {
   for (list<GraphNode::Ptr>::iterator iter = graph_.begin(); iter != graph_.end(); ++iter) {
     if ((*iter)->type_ == GraphNode::Connector) continue;
 
-    if (lineVisib(pt, (*iter)->pos_, clearance_, pc, 0, use_skip_ ? 1 : 0)) {
+    if (lineVisib(pt, (*iter)->pos_, clearance_, pc, 0, -1)) {
       visib_guards.push_back((*iter));
       ++visib_num;
       if (visib_num > 2) break;
@@ -1137,7 +1137,7 @@ vector<vector<Eigen::Vector3d>> TopologyPRM::searchPaths() {
   vis1.push_back(*start_it);
   vis2.push_back(*std::next(start_it));
   depthFirstSearchBid(vis1, vis2, 0);
-  // ROS_WARN_STREAM("raw path by BiDFS: " << raw_paths_.size()); 
+  ROS_WARN_STREAM("raw path by BiDFS: " << raw_paths_.size()); 
 
   // sort the path by node number
   int min_node_num = 100000, max_node_num = 1;

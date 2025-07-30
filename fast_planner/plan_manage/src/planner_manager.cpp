@@ -401,6 +401,16 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     plan_data_.search_tree = kino_path_finder_->getSearchTree();
   double delta_t_geo = 0.1;
   plan_data_.kino_path_ = kino_path_finder_->getKinoTraj(delta_t_geo);
+  for (size_t i = 1; i < plan_data_.kino_path_.size(); ++i) {
+      double dist = (plan_data_.kino_path_[i] - plan_data_.kino_path_[i - 1]).norm();
+      if (dist >  (pp_.max_vel_ * delta_t_geo * 5)) {
+          ROS_ERROR("Abnormal jump detected in kino_path at index %lu: distance %.3f exceeds threshold %.3f",
+                    i, dist, pp_.max_vel_ * delta_t_geo * 5);
+          return false;
+      }
+  }
+
+
   // plan_data_.jps_path_ =  kino_path_finder_->getJpsPath();
   t_search = (ros::Time::now() - t1).toSec();
   t1                    = ros::Time::now(); //更新当前时间
@@ -516,13 +526,11 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     int fix_num_start, fix_num_end;
     bspline_optimizers_[4]->checkFixInterval(fix_num_start, fix_num_end);
     ROS_WARN_STREAM("fix_num: " << fix_num_start << ", " << fix_num_end);
-    fix_num_start = min(6, fix_num_start);
-    fix_num_start = max(9, fix_num_start);
-
-    fix_num_end = min(6, fix_num_end);
-    fix_num_end = max(9, fix_num_end);    
+    fix_num_start = std::max(6, std::min(9, fix_num_start));
+    fix_num_end = std::max(6, std::min(9, fix_num_end));   
     if (status != KinodynamicAstar::REACH_END) {
       fix_num_end = -1;
+      // cost_function |= BsplineOptimizer::ENDPOINT;
     }
     cost_function = BsplineOptimizer::NORMAL_PHASE;
     cost_function = cost_function | BsplineOptimizer::CTRLPTYAWS2;
@@ -572,9 +580,9 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     // local_data_.position_traj_tmp_ = traj_perception_mid2;// 
     ctrl_pts = ctrl_pts_new;
   }
-  std::cout << "Opt time: \n smooth: " << (opt_t2 - opt_t1).toSec() * 1000 << ". \n yawS1: " << (opt_t3 - opt_t2).toSec() * 1000 << 
-  ". \n yawS2: " << (opt_t4 - opt_t3).toSec() * 1000 << ". \n perception: " << (opt_t5 - opt_t4).toSec() * 1000 << ". \n perception yawS3: " <<
-  (opt_t6 - opt_t5).toSec() * 1000 << ". " << std::endl;
+  // std::cout << "Opt time: \n smooth: " << (opt_t2 - opt_t1).toSec() * 1000 << ". \n yawS1: " << (opt_t3 - opt_t2).toSec() * 1000 << 
+  // ". \n yawS2: " << (opt_t4 - opt_t3).toSec() * 1000 << ". \n perception: " << (opt_t5 - opt_t4).toSec() * 1000 << ". \n perception yawS3: " <<
+  // (opt_t6 - opt_t5).toSec() * 1000 << ". " << std::endl;
  
   t_opt = (ros::Time::now() - t1).toSec();
   // iterative time adjustment
@@ -593,7 +601,7 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
   // }
 
   double to = pos.getTimeSum();
-  pos.setPhysicalLimits(1.05 * pp_.max_vel_, 1.05 * pp_.max_acc_); // 这里要加上一个尺度因子
+  pos.setPhysicalLimits(1.05 * pp_.max_vel_, 1.1 * pp_.max_acc_); // 这里要加上一个尺度因子
   bool feasible = pos.checkFeasibility(false);
 
   int iter_num = 0;
@@ -614,6 +622,19 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
   // }
 
 
+  // // 打印car当前的速度和bspline上规划出来的速度
+  // {
+  //   // 1. 获取car当前速度（假设有成员变量 current_vel_ 或通过 odom 获得）
+  //   Eigen::Vector3d car_vel = start_vel; // 或者通过订阅的odom消息获得
+  //   Eigen::Vector3d bspline_vel1 = pos.getDerivative().evaluateDeBoorT(0.0);
+  //   Eigen::Vector3d bspline_vel2 = pos.getDerivative().evaluateDeBoorT(0.2);
+  //   Eigen::Vector3d bspline_vel3 = pos.getDerivative().evaluateDeBoorT(0.4);
+  //   // 3. 打印
+  //   std::cout << "[Car] current velocity: " << car_vel.norm() << std::endl;
+  //   std::cout << "[Bspline] planned velocity: " << bspline_vel1.norm() << ", "
+  //             << bspline_vel2.norm() << ", " << bspline_vel3.norm() << std::endl;
+  // }
+
   double tn = pos.getTimeSum();
 
   cout << "[kino replan]: Reallocate ratio: " << tn / to << endl;
@@ -628,7 +649,7 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
   double t_total = t_search + t_opt + t_adjust;
   cout << "[kino replan]: total time [ms]: " << t_total_e * 1000 << ", topo: " << t_topo * 1000 << ", search: " << t_search * 1000 << ", optimize: " << t_opt * 1000
        << ", adjust time:" << t_adjust * 1000 << endl;
-  saveTimeData(t_total_e * 1000, record_file_);
+  // saveTimeData(t_total_e * 1000, record_file_);
   pp_.time_search_   = t_search;
   pp_.time_optimize_ = t_opt;
   pp_.time_adjust_   = t_adjust;

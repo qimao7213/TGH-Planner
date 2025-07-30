@@ -4,7 +4,7 @@ project(drawTrajInfo)  # 项目名称
 
 find_package(PythonLibs 3.8 REQUIRED)  # 查找Python库
 find_package(Eigen3 REQUIRED)
-find_package(OpenCV 4.7.0 EXACT REQUIRED)
+find_package(OpenCV REQUIRED)
 # find_package(NumPy REQUIRED)  # 查找NumPy库
 set(CMAKE_BUILD_TYPE "Debug")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall")

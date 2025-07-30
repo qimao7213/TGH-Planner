@@ -7,14 +7,16 @@
   <arg name="max_vel"/>
   <arg name="max_acc"/>
   <arg name="ddelta_max" value="2.5"/> 
-  <arg name="car_cmd" value="/car_vel"/>
+  <arg name="car_cmd" value="/car/cmd"/>
+  <arg name="car_cmd_ros" value="/cmd_vel"/>
   <arg name="odometry_topic"/>
+  <arg name="use_teb" default="false"/>
 
   <!-- <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen">
     <param name="num_worker_threads" value="6"/>
   </node> -->
 
-  <node pkg="nodelet" type="nodelet" name="car_mpc" args="standalone car_mpc/Nodelet" output="screen" launch-prefix="xterm -e" respawn="true">
+  <node pkg="nodelet" type="nodelet" name="car_mpc" args="standalone car_mpc/Nodelet" output="screen" respawn="false" launch-prefix="xterm -e">
     <param name="car_mpc/dt" value="0.03" type="double"/>
     <param name="car_mpc/wheel_base" value="$(arg wheel_base_)" type="double"/>
     <!-- <param name="car_mpc/desired_v" value="1.5" type="double"/>  -->
@@ -26,9 +28,11 @@
     <param name="car_mpc/delta_max"  value="$(arg max_steering_angel_)" type="double"/>
     <param name="car_mpc/ddelta_max" value="$(arg ddelta_max)" type="double"/>
     <param name="car_mpc/verbose" value="false" type="bool"/>
+    <param name="car_mpc/use_teb" value="$(arg use_teb)" type ="bool"/>
 
     <remap from="~odometry"   to="$(arg odometry_topic)"/> 
     <remap from="~cmd"  to="$(arg car_cmd)"/>
+    <remap from="~cmd_ros" to="$(arg car_cmd_ros)"/>
   </node>
 
 </launch>

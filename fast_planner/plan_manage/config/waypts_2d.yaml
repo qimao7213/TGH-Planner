@@ -4,9 +4,9 @@
 # waypts_yaw: [-200, -180, 0] #使用角度制，比较方便
 
 # 测试perception用的
-waypts_x: [1, 4.0]
-waypts_y: [3, 1.5]
-waypts_yaw: [90, -90] #使用角度制，比较方便
+waypts_x: [4.25, 4.11]
+waypts_y: [-0.433, -4.02]
+waypts_yaw: [0, -145] #使用角度制，比较方便
 
 
 # waypts_x: [-14.6]

@@ -29,14 +29,14 @@ TebLocalPlannerROS:
  acc_lim_theta: 2
 
  # ********************** Carlike robot parameters ********************
- min_turning_radius: 0.22        # Min turning radius of the carlike robot (compute value using a model or adjust with rqt_reconfigure manually)
+ min_turning_radius: 0.1        # Min turning radius of the carlike robot (compute value using a model or adjust with rqt_reconfigure manually)
  wheelbase: 0.3                 # Wheelbase of our robot
  cmd_angle_instead_rotvel: False # stage simulator takes the angle instead of the rotvel as input (twist message)
  # ********************************************************************
 
  footprint_model: # types: "point", "circular", "two_circles", "line", "polygon"
    type: "circular"
-   radius: 0.2 # for type "circular"
+   radius: 0.3 # for type "circular"
    line_start: [0.0, 0.0] # for type "line"
    line_end: [0.4, 0.0] # for type "line"
    front_offset: 0.2 # for type "two_circles"
@@ -48,14 +48,14 @@ TebLocalPlannerROS:
  # GoalTolerance
     
  xy_goal_tolerance: 0.2
- yaw_goal_tolerance: 0.5
+ yaw_goal_tolerance: 0.2
  free_goal_vel: True
  complete_global_plan: True
     
  # Obstacles
     
- min_obstacle_dist: 0.35 # This value must also include our robot's expansion, since footprint_model is set to "line".
- inflation_dist: 0.35
+ min_obstacle_dist: 0.4 # This value must also include our robot's expansion, since footprint_model is set to "line".
+ inflation_dist: 0.1
  include_costmap_obstacles: True
  costmap_obstacles_behind_robot_dist: 3.0
  obstacle_poses_affected: 30
@@ -64,7 +64,7 @@ TebLocalPlannerROS:
  include_dynamic_obstacles: True 
 
 # costmap_converter::CostmapToLatticePolygons
- costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCH"
+ costmap_converter_plugin: "costmap_converter::CostmapToPolygonsDBSMCCHs"
  costmap_converter_spin_thread: True
  costmap_converter_rate: 20
 
@@ -83,9 +83,9 @@ TebLocalPlannerROS:
  weight_kinematics_nh: 2
  weight_kinematics_forward_drive: 200000
  weight_kinematics_turning_radius: 1
- weight_optimaltime: 2 # must be > 0
+ weight_optimaltime: 10 # must be > 0
  weight_shortest_path: 0
- weight_obstacle: 5
+ weight_obstacle: 20
  weight_inflation: 0.1
  weight_dynamic_obstacle: 1 # not in use yet
  weight_dynamic_obstacle_inflation: 0.1

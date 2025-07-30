@@ -202,7 +202,8 @@ void KinoReplanFSM::execFSMCallback(const ros::TimerEvent& e) {
         // cout << "near end" << endl;
         return;
 
-      } else if((t_cur - last_plan_time_ > 0.8))
+      } 
+      else if((t_cur - last_plan_time_ > 0.8))
       {
         last_plan_time_ = t_cur;
         changeFSMExecState(REPLAN_TRAJ, "FSM");//周期性地在进行重规划

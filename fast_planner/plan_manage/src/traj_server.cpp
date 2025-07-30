@@ -234,7 +234,7 @@ void odomCallbck(const nav_msgs::Odometry& msg) {
   odom = msg;
 
   traj_real_.push_back(
-      Eigen::Vector3d(odom.pose.pose.position.x, odom.pose.pose.position.y, 0.7));
+      Eigen::Vector3d(odom.pose.pose.position.x, odom.pose.pose.position.y, 0.0));
 
   std_msgs::Float64 vel_value;
   geometry_msgs::Twist twist = odom.twist.twist;

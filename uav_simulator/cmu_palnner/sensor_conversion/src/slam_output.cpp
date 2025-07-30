@@ -48,6 +48,11 @@ SlamOutput::SlamOutput(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     nh_private.param("offset_gazebo_world_y", offset_gazebo_world_y, 0.0);
     nh_private.param("down_voxel_size", down_voxel_size, 0.05);
 
+    if (!is_sim)
+    {
+        offset_gazebo_world_x = 0.0;
+        offset_gazebo_world_y = 0.0;
+    }
     T_B_L = Eigen::Isometry3d::Identity();
     Eigen::Vector3d lidar_in_base = Eigen::Vector3d::Zero();
     Eigen::Quaterniond q_lidar_in_base = Eigen::Quaterniond::Identity();
@@ -143,7 +148,7 @@ void SlamOutput::pointCloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr &
 
     // 9. 发布里程计
     nav_msgs::Odometry odom_msg;
-    odom_msg.header.stamp = scanIn->header.stamp;
+    odom_msg.header.stamp = odomIn->header.stamp;
     odom_msg.header.frame_id = world_frame_id; // 
     odom_msg.child_frame_id = "base_link";
     odom_msg.pose.pose.position.x = T_W_B.translation().x();
@@ -174,7 +179,7 @@ void SlamOutput::odomTfCallback(const nav_msgs::OdometryConstPtr& odom_msg) {
     {   
         static double last_tf_pub_time = ros::Time::now().toSec();    
         double now = ros::Time::now().toSec();
-        if (now - last_tf_pub_time > 0.07) 
+        // if (now - last_tf_pub_time > 0.01) 
         { // 10Hz限制
             last_tf_pub_time = now;
             // 构造T_world_lidar
@@ -204,6 +209,47 @@ void SlamOutput::odomTfCallback(const nav_msgs::OdometryConstPtr& odom_msg) {
 
             broadcaster.sendTransform(stamped_tf);
         }
+        // Eigen::Isometry3d T_SLAM_L = Eigen::Isometry3d::Identity();
+        // T_SLAM_L.linear() = q_lidar.toRotationMatrix();
+        // T_SLAM_L.translation() = t_lidar;
+
+        // Eigen::Isometry3d T_W_B = T_W_SLAM * T_SLAM_L * T_B_L.inverse();
+        // // --- twist转换 ---
+        // // lidar_link在SLAM系下的速度
+        // const auto& twist = odom_msg->twist.twist;
+        // Eigen::Vector3d v_lidar(twist.linear.x, twist.linear.y, twist.linear.z);
+        // Eigen::Vector3d w_lidar(twist.angular.x, twist.angular.y, twist.angular.z);
+
+        // // 1. lidar_link -> base_link
+        // Eigen::Matrix3d R_B_L = T_B_L.linear();
+        // Eigen::Vector3d v_base = R_B_L * v_lidar + R_B_L * w_lidar.cross(-T_B_L.translation());
+        // Eigen::Vector3d w_base = R_B_L * w_lidar;
+
+        // // 2. base_link -> world
+        // Eigen::Matrix3d R_W_B = (T_W_SLAM * T_SLAM_L * T_B_L.inverse()).linear();
+        // Eigen::Vector3d v_world = R_W_B * v_base;
+        // Eigen::Vector3d w_world = R_W_B * w_base;
+        // // 9. 发布里程计
+        // nav_msgs::Odometry odom_msg;
+        // odom_msg.header.stamp = odom_msg.header.stamp;
+        // odom_msg.header.frame_id = world_frame_id; // 
+        // odom_msg.child_frame_id = "base_link";
+        // odom_msg.pose.pose.position.x = T_W_B.translation().x();
+        // odom_msg.pose.pose.position.y = T_W_B.translation().y();
+        // odom_msg.pose.pose.position.z = T_W_B.translation().z();
+        // Eigen::Quaterniond q_W_B(T_W_B.rotation());
+        // odom_msg.pose.pose.orientation.x = q_W_B.x();
+        // odom_msg.pose.pose.orientation.y = q_W_B.y();
+        // odom_msg.pose.pose.orientation.z = q_W_B.z();
+        // odom_msg.pose.pose.orientation.w = q_W_B.w();
+        // odom_msg.twist.twist.linear.x = v_world.x();
+        // odom_msg.twist.twist.linear.y = v_world.y();
+        // odom_msg.twist.twist.linear.z = v_world.z();
+        // odom_msg.twist.twist.angular.x = w_world.x();
+        // odom_msg.twist.twist.angular.y = w_world.y();
+        // odom_msg.twist.twist.angular.z = w_world.z();
+
+        // odom_pub.publish(odom_msg);
     }
 }
 

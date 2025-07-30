@@ -9,3 +9,6 @@ test/traj_record/data/planning_time_cost.txt
 uav_simulator/cmu_palnner/local_planner/rviz/cmu_planner.rviz
 test/traj_record/data/*
 uav_simulator/dynamicvoronoi/data/*
+test/*
+fast_planner/plan_manage/maps/record_data/*
+test/traj_record/

@@ -357,6 +357,7 @@ private:
   void depthPoseCallback(const sensor_msgs::ImageConstPtr& img,
                          const geometry_msgs::PoseStampedConstPtr& pose);
   void depthOdomCallback(const sensor_msgs::ImageConstPtr& img, const nav_msgs::OdometryConstPtr& odom);
+  void cloudOdomCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt, const nav_msgs::OdometryConstPtr& odom);
   void depthCallback(const sensor_msgs::ImageConstPtr& img);
   void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& img);
   void poseCallback(const geometry_msgs::PoseStampedConstPtr& pose);
@@ -391,15 +392,20 @@ private:
       SyncPolicyImageOdom;
   typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, geometry_msgs::PoseStamped>
       SyncPolicyImagePose;
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2, nav_msgs::Odometry>
+      SyncPolicyCloudOdom;
   typedef shared_ptr<message_filters::Synchronizer<SyncPolicyImagePose>> SynchronizerImagePose;
   typedef shared_ptr<message_filters::Synchronizer<SyncPolicyImageOdom>> SynchronizerImageOdom;
+  typedef shared_ptr<message_filters::Synchronizer<SyncPolicyCloudOdom>> SynchronizerCloudOdom;
 
   ros::NodeHandle node_;
   shared_ptr<message_filters::Subscriber<sensor_msgs::Image>> depth_sub_;
   shared_ptr<message_filters::Subscriber<geometry_msgs::PoseStamped>> pose_sub_;
   shared_ptr<message_filters::Subscriber<nav_msgs::Odometry>> odom_sub_;
+  shared_ptr<message_filters::Subscriber<sensor_msgs::PointCloud2>> cloud_sub_;
   SynchronizerImagePose sync_image_pose_;
   SynchronizerImageOdom sync_image_odom_;
+  SynchronizerCloudOdom sync_cloud_odom_;
 
   ros::Subscriber indep_depth_sub_, indep_odom_sub_, indep_pose_sub_, indep_cloud_sub_;
   // 区分map_pub_和map_inf_pub_

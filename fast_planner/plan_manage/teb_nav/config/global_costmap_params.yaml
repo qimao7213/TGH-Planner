@@ -1,6 +1,6 @@
 global_costmap:
   global_frame: world
-  robot_base_frame: car_model
+  robot_base_frame: base_link
   update_frequency: 1.0
   publish_frequency: 0.5
   static_map: true

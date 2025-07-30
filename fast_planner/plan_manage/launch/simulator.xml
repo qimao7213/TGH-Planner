@@ -1,6 +1,5 @@
 <launch>
-  <arg name="only2D"/>
-  <arg name="only2D_not"/>
+  <arg name="sim_pose"/>
   <arg name="used_odom_name"/>
   <arg name="wheel_base_"/>  
   <arg name="max_steering_angel_"/>  
@@ -8,6 +7,7 @@
   <arg name="max_acc"/>
 
   <arg name="car_cmd" value="/car/cmd"/>
+  <arg name="car_cmd_ros" value="/cmd_vel"/>
   <!-- <arg name="init_x" value="10.0"/>
   <arg name="init_y" value="-0.0"/>
   <arg name="init_z" value="0.5"/> 
@@ -17,7 +17,8 @@
   <!-- zigzag -25, -24, phi:0 -->
   <!-- local plan 0 0 0 , phi: 90-->
   <!-- perception: 1, -6, phi: 90 -->
-  <arg name="init_x" value="-15"/>
+  <!-- 如果不用set_pos的方式，那么这个初始设置可能就没有用了 -->
+  <arg name="init_x" value="0"/>
   <arg name="init_y" value="0"/>
   <arg name="init_z" value="0.1"/> 
   <!-- 对init_z解释：对于二维的情况，z轴是不改变的。car的位姿用于设置gazebo里面model的位姿，对应的是base_link，对应的是机器人和地面的接触部分 -->
@@ -68,7 +69,7 @@
   </node> -->
 
   <!-- car simulator -->
-  <!-- <group if="$(arg only2D)">
+  <group if="$(arg sim_pose)">
     <node pkg="nodelet" type="nodelet" name="car_simulator" args="standalone car_simulator/Nodelet" output="screen">
       <param name="simulator/init_state_x" value="$(arg init_x)"/>
       <param name="simulator/init_state_y" value="$(arg init_y)"/>
@@ -78,39 +79,12 @@
       <param name="simulator/use_teb" value="$(arg use_teb)"/>
       <param name="rate/odom" value="200.0"/>
 
-      <remap from="~odom_test" to="/car/odom"/>
+      <remap from="~odom_test" to="$(arg used_odom_name)"/>
       <remap from="~cmd"  to="$(arg car_cmd)"/>
-      <remap from="/cmd_vel" to="/jackal_velocity_controller/cmd_vel"/>
+      <remap from="~cmd_ros" to="$(arg car_cmd_ros)"/>
     </node>
-  </group> -->
-
-  <group if="$(arg only2D_not)">
-    <node pkg="so3_quadrotor_simulator" type="quadrotor_simulator_so3" name="quadrotor_simulator_so3" output="screen">
-      <param name="rate/odom" value="200.0"/>
-      <param name="simulator/init_state_x" value="$(arg init_x)"/>
-      <param name="simulator/init_state_y" value="$(arg init_y)"/>
-      <param name="simulator/init_state_z" value="$(arg init_z)"/>
-
-      <remap from="~odom" to="$(arg used_odom_name)"/>
-      <remap from="~cmd" to="so3_cmd"/>
-      <remap from="~force_disturbance" to="force_disturbance"/>    
-      <remap from="~moment_disturbance" to="moment_disturbance"/>        
-    </node>
-    <node pkg="nodelet" type="nodelet" args="standalone so3_control/SO3ControlNodelet" name="so3_control" required="true" output="screen">
-       <remap from="~odom" to="/state_ukf/odom"/>
-       <remap from="~position_cmd" to="/planning/pos_cmd"/>
-       <remap from="~motors" to="motors"/>
-       <remap from="~corrections" to="corrections"/>
-       <remap from="~so3_cmd" to="so3_cmd"/>
-       <rosparam file="$(find so3_control)/config/gains_hummingbird.yaml"/>
-       <rosparam file="$(find so3_control)/config/corrections_hummingbird.yaml"/>
-       <param name="mass" value="0.74"/>
-       <param name="use_angle_corrections " value="false"/>
-       <param name="use_external_yaw "      value="false"/>
-       <param name="gains/rot/z" value="1.0"/>    
-       <param name="gains/ang/z" value="0.1"/>        
-    </node>     
   </group>
+
  
   <!-- <node pkg="so3_disturbance_generator" name="so3_disturbance_generator" type="so3_disturbance_generator" output="screen">
         <remap from="~odom" to="$(arg used_odom_name)"/>             
@@ -148,7 +122,8 @@
 
   <group if="$(arg use_gazebo)">
     <include file="$(find gazebo_simulator)/launch/gazebo_sim.launch">
-      <!-- <arg name="odom_name" value="$(arg used_odom_name)"/> -->
+      <arg name="odom_name" value="$(arg used_odom_name)"/>
+      <arg name="sim_pose" value="$(arg sim_pose)"/>
     </include>
   </group>
 

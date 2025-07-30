@@ -27,7 +27,7 @@ public:
         offset_sim_gazebo << off_set_x, off_set_y, off_set_z;
         std::cout << off_set_x << off_set_y <<  off_set_z << std::endl;
         // 从参数服务器读取 remap 的参数
-        nh_.param<std::string>("odom_name", odom_name_, "/car/odom");
+        nh_.param<std::string>("odom_name", odom_name_, "/car_odom");
         nh_.param<std::string>("robot_model_name", robot_model_name_, "simple_box");
         nh_.param<std::string>("reference_frame", reference_frame_, "world");
         std::cout << "Odom Name: " << odom_name_ << std::endl;

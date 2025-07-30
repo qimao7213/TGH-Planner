@@ -1,17 +1,25 @@
 <launch>
   <arg name="only2D" value="1"/>
   <arg name="only2D_not" value="0"/>
-
+  
   <arg name="FilePath" value="/home/bhrqhb/catkin_ws/planner/catkin_ws_TGH_Planner/src/TGH-Planner/"/>
-  <arg name="use_teb" value="true"/>
-  <arg name="use_gazebo" value="true" />
+  
+  <!-- use_teb表示mpc输出的指令是cmd_vel类型的 -->
+  <arg name="use_teb" value="false"/>
+  <arg name="use_mpc" value = "true"/>
+  <arg name="sim_pose" value="true"/>
+
+  <arg name="use_gazebo" value="true"/>
+  <!--用来校正gazebo的原点和本算法world坐标系的原点-->
+  <arg name="offset_gazebo_world_x" value="20"/> 
+  <arg name="offset_gazebo_world_y" value="20"/>
 
   <!--这个odom是仿真的-->
   <arg name="robot_odom" value="/car_odom"/>
   <arg name="sensor_odom" value="/jackal/velodyne/gazebo_gt/odometry"/>
   <arg name="sensor_odom_parent_frame"  value="world"/>
   <arg name="max_vel_" value="2.0" />
-  <arg name="max_acc_" value="1.5" />
+  <arg name="max_acc_" value="2.0" />
 
 
   <arg name="max_steering_angel" value="45.0"/>
@@ -53,6 +61,7 @@
     <arg name="map_size_y_" value="$(arg map_size_y)"/>
     <arg name="map_size_z_" value="$(arg map_size_z)"/>
     <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="perception_odom_topic" value="$(arg sensor_odom)"/>
     <arg name="perception_data" value="$(arg perception_data)"/>
     <arg name="perception_data_type" value="$(arg perception_data_type)"/>
     <arg name="camera_frame" value="$(arg camera_frame)"/>
@@ -75,8 +84,6 @@
     <!-- 1: use 2D Nav Goal to select goal  -->
     <!-- 2: use global waypoints below  -->
     <arg name="flight_type" value="1" />
-    
-    <arg name="use_teb" value="$(arg use_teb)" />
   </include>
 
   <!-- trajectory server -->
@@ -100,28 +107,10 @@
   </node>
   <node pkg="tf2_ros" type="static_transform_publisher" name="world_link" args="0 0 0 0 0 0 1 /world /map"/>
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="SLAM_link" args="0 0 0 0 0 0 1 /world /camera_init"/> -->
-  <node pkg="dynavoro" name="dynavoro" type="mainLauMethod" output="screen" respawn="true" launch-prefix="xterm -e">
-    <remap from="/car_odom" to="$(arg odom_topic)"/>
-  </node>
-  <!-- <node pkg="gazebo_simulator" type="pub_tf.py" name="pub_tf_node" output="screen">
-    <param name="lidar_frame" value="$(arg lidar_link)"/>
-    <param name="base_frame" value="base_link"/>
-    <param name="sensor_odom_topic" value="$(arg sensor_odom)"/>
-  </node> -->
-  <!-- car_mpc -->
-  <!-- <include file="$(find car_mpc)/launch/simulation.launch">
-    <arg name="wheel_base_" value="$(arg wheel_base)"/>  
-    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/>  
-    <arg name="max_vel" value="$(arg max_vel_)"/>
-    <arg name="max_acc" value="$(arg max_acc_)"/>
-    <arg name="odometry_topic" value="$(arg odom_topic)"/>
-  </include> -->
 
   <!-- use simulator -->
   <include file="$(find plan_manage)/launch/simulator.xml">
     <arg name="FilePath" value="$(arg FilePath)"/>
-    <arg name="only2D" value="$(arg only2D)"/>
-    <arg name="only2D_not" value="$(arg only2D_not)"/>
     <arg name="used_odom_name" value="$(arg robot_odom)"/>
     <arg name="wheel_base_" value="$(arg wheel_base)"/> 
     <arg name="max_vel" value="$(arg max_vel_)" />
@@ -137,8 +126,10 @@
     <arg name="odometry_topic" value="$(arg odom_topic)" />
     <arg name="use_teb" value="$(arg use_teb)" />
     <arg name="use_gazebo" value="$(arg use_gazebo)" />
+    <arg name="sim_pose" value="$(arg sim_pose)"/>
   </include>
 
+  <group unless="$(arg sim_pose)">
   <node pkg="sensor_conversion" type="slam_sim_output_node" name="slam_sim_output_node" output="log" required="true">
       <param name="sensor_odom_parent_frame" value="$(arg sensor_odom_parent_frame)" />
       <param name="car_odom_topic" value="$(arg robot_odom)" />
@@ -146,13 +137,34 @@
       <param name="local_cloud_sub_topic" value="$(arg perception_data)" />
       <param name="lidar_frame" value="$(arg lidar_link)"/>
       <param name="base_frame" value="base_link"/>
-      <param name="offset_gazebo_world_x" value="50"/>
-      <param name="offset_gazebo_world_y" value="50"/>
+      <param name="offset_gazebo_world_x" value="$(arg offset_gazebo_world_x)"/>
+      <param name="offset_gazebo_world_y" value="$(arg offset_gazebo_world_y)"/>
       <param name="down_voxel_size" value="0.1"/>
       <param name="is_sim" value="true"/>
   </node>
+  </group>
 
+  <!-- car_mpc和cmu_planner只能开一个，对应不同的控制模式 -->
+  <group if="$(arg use_mpc)">
+  <include file="$(find car_mpc)/launch/simulation.launch">
+    <arg name="wheel_base_" value="$(arg wheel_base)"/>  
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/>  
+    <arg name="max_vel" value="$(arg max_vel_)"/>
+    <arg name="max_acc" value="$(arg max_acc_)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="use_teb" value="$(arg use_teb)"/>
+  </include>
+  </group>
+
+<group unless="$(arg use_mpc)">
   <include file="$(find local_planner)/launch/cmu_local_planner.launch">
     <arg name="stateEstimationTopic" value="$(arg odom_topic)"/>
+    <arg name="max_vel" value="$(arg max_vel_)"/>
+    <arg name="max_acc" value="$(arg max_acc_)"/>
   </include>
+  <node pkg="dynavoro" name="dynavoro" type="mainLauMethod" output="screen" respawn="true" launch-prefix="xterm -e">
+    <param name="obs_clearance_high" value="5.0"/>
+    <remap from="/car_odom" to="$(arg odom_topic)"/>
+  </node>
+</group>
 </launch>

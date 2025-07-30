@@ -7,9 +7,14 @@ namespace DynaVoro
 {
 VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
 {
-  resolution_ = nh.param("/map_resolution", 0.1);
-  clearance_low_ = nh.param("/obs_clearance", 0.3);          //小于这个值的维诺点不要
-  clearance_high_ = nh.param("/obs_clearance_high", 3.0);    //大于这个值的维诺点不要
+  double resolutiond, clearance_lowd, clearance_highd;
+  nh.param("voro_map_resolution", resolutiond, 0.1);
+  nh.param("obs_clearance", clearance_lowd, 0.3);
+  nh.param("obs_clearance_high", clearance_highd, 5.0);
+  resolution_ = static_cast<float>(resolutiond);
+  clearance_low_ = static_cast<float>(clearance_lowd);   //小于这个值的维诺点不要
+  clearance_high_ = static_cast<float>(clearance_highd); //大于这个值的维诺点不要,包络线
+  ROS_WARN_STREAM("VoronoiLayer: resolution: " << resolution_ << ", clearance_low: " << clearance_low_ << ", clearance_high: " << clearance_high_);
   visualization_.reset(new fast_planner::PlanningVisualization(nh));
   clearance_low_thr_ = clearance_low_ * clearance_low_ / resolution_ / resolution_;
   clearance_high_thr_ = clearance_high_ * clearance_high_ / resolution_ / resolution_;
@@ -545,6 +550,7 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
     publishPath({});
     publishPath2({start_pt, goal_pt});
     ROS_WARN_STREAM("There is no graph. Return the stright of start and end.");
+    return true;
   }
 
   // 先判断起点和终点是否在图中，如果不在，则将其初始化为GraphNode
@@ -1592,6 +1598,40 @@ void VoronoiLayer::planTimerCallback(const ros::TimerEvent& event)
   if (!has_goal_){
     return;
   }
+  // 判断当前位置和goal的直线之间是否小于2m且都是free的
+  // 如果是，则将has_goal_设置为false，表示已经到达目标点，停止持续的规划
+  double dist = (odom_pos_ - lastest_goal_).head<2>().norm(); // 只考虑x,y
+  if (dist < 3.0) {
+    // 判断直线上所有点是否都是free
+    Eigen::Vector2d start(odom_pos_.x(), odom_pos_.y());
+    Eigen::Vector2d goal(lastest_goal_.x(), lastest_goal_.y());
+    Eigen::Vector2i start_coord, goal_coord;
+    start_coord.x() = WorldToMapX(start.x());
+    start_coord.y() = WorldToMapY(start.y());
+    goal_coord.x() = WorldToMapX(goal.x());
+    goal_coord.y() = WorldToMapY(goal.y());
+
+    Eigen::Vector2d start_pt, goal_pt;
+    start_pt.x() = start_coord.x();
+    start_pt.y() = start_coord.y();
+    goal_pt.x() = goal_coord.x();
+    goal_pt.y() = goal_coord.y();
+
+    std::vector<Eigen::Vector2d> line_pts = discretizeLine(start_pt, goal_pt);
+    bool all_free = true;
+    for (const auto& pt : line_pts) {
+      if (voronoi_.isOccupied(pt.x(), pt.y())) {
+        all_free = false;
+        break;
+      }
+    }
+    if (all_free) {
+      has_goal_ = false;
+      ROS_INFO("Arrived at goal, stop planning.");
+      return;
+    }
+  }
+
   this->plan(odom_pos_, lastest_goal_, odom_yaw_);
 }
 
