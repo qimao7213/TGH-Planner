@@ -15,7 +15,6 @@
 #include "rviz_subscriber.h"
 #include <traj_utils/planning_visualization.h>
 
-using namespace fast_planner;
 using namespace std;
 
 const double origin_x_ = -10;
@@ -53,7 +52,7 @@ void readTrajectory(std::ifstream& inFile, std::vector<Eigen::Vector2i>& points)
 
 
 
-void saveRecordData(const RecordData& record_date, std::ofstream& file)
+void saveRecordData(const fast_planner::RecordData& record_date, std::ofstream& file)
 {
     int path_num = 0;
     double path_length_sum = 0.0;
@@ -92,10 +91,10 @@ public:
         sdf_map_.reset(new SDFMap);
         sdf_map_->initMapFromCostMap(nh); // 这里订阅了地图
         sdf_map_->setNeed2DMap(true);
-        edt_environment_.reset(new EDTEnvironment);
+        edt_environment_.reset(new fast_planner::EDTEnvironment);
         edt_environment_->setMap(sdf_map_);  
-        visualization_.reset(new PlanningVisualization(nh));
-        topo_prm_.reset(new TopologyPRM);
+        visualization_.reset(new fast_planner::PlanningVisualization(nh));
+        topo_prm_.reset(new fast_planner::TopologyPRM);
         topo_prm_->setEnvironment(edt_environment_);
         topo_prm_->initForTest(nh);
         topo_prm_->setOnly2D(true);     
@@ -151,11 +150,11 @@ public:
 
             std::vector<Eigen::Vector3d> start_change;
             start_change.emplace_back(Eigen::Vector3d(start_state(0), start_state(1), -0.5));
-            // topo_prm_->setStartChange(start_change);
+            topo_prm_->setStartChange(start_change);
 
-            list<GraphNode::Ptr>            graph;
+            list<fast_planner::GraphNode::Ptr>            graph;
             vector<vector<Eigen::Vector3d>> raw_paths, filtered_paths, select_paths;
-            topo_prm_->findTopoPaths(start_state, goal_state, vector<Eigen::Vector3d>{}, vector<Eigen::Vector3d>{}, graph,
+            topo_prm_->findVoroPaths(start_state, goal_state, vector<Eigen::Vector3d>{}, vector<Eigen::Vector3d>{}, graph,
                                raw_paths, filtered_paths, select_paths);
             vector<Eigen::Vector3d> dubins_shot_path;
             ros::Time t1, t2;
@@ -168,13 +167,15 @@ public:
             vector<vector<Eigen::Vector3d>> path_front= topo_prm_->getPathContainer(1);
             vector<vector<Eigen::Vector3d>> path_back= topo_prm_->getPathContainer(2);           
             // vector<vector<Eigen::Vector3d>> path_container_vis(path_container.begin(), path_container.begin() + 4);
-            visualization_->drawTopoPathsPhase1(path_back, 0.05);
-            visualization_->drawTopoPathsPhase2(path_front, 0.05);
+            if(!path_back.empty()) visualization_->drawTopoPathsPhase1(path_back, 0.05);
+            if(!path_front.empty()) visualization_->drawTopoPathsPhase2(path_front, 0.05);
             // visualization_->drawTopoSampleArea(topo_prm_->getSampleArea(), 0.05, Eigen::Vector4d(0.5, 0.5, 0.5, 0.5));
             visualization_->drawGuidePath(dubins_shot_path, 0.075, Eigen::Vector4d(0.5, 0.5, 0.0, 1.0));
+            auto voro_paths = topo_prm_->getVoroPaths();
+            if(!voro_paths.empty()) visualization_->drawTopoVoronoiPaths(voro_paths, 0.2);
 
             last_goal_ = goal_state;
-            RecordData record_data = topo_prm_->getRecordData();
+            fast_planner::RecordData record_data = topo_prm_->getRecordData();
             saveRecordData(record_data, record_file_);
         }
     }
@@ -184,15 +185,15 @@ public:
 
 private:
     SDFMap::Ptr sdf_map_;
-    EDTEnvironment::Ptr edt_environment_;
+    fast_planner::EDTEnvironment::Ptr edt_environment_;
     ros::NodeHandle nh_;
-    unique_ptr<TopologyPRM> topo_prm_;
-    GlobalTrajData global_data_; //给topo用的
+    unique_ptr<fast_planner::TopologyPRM> topo_prm_;
+    fast_planner::GlobalTrajData global_data_; //给topo用的
 
-    PlanParameters pp_;                       // 规划相关的参数
-    MidPlanData plan_data_;                   // kino用来存放轨迹，和yaw角的规划，但是放yaw角的规划在这里由什么用呢？
+    fast_planner::PlanParameters pp_;                       // 规划相关的参数
+    fast_planner::MidPlanData plan_data_;                   // kino用来存放轨迹，和yaw角的规划，但是放yaw角的规划在这里由什么用呢？
 
-    PlanningVisualization::Ptr visualization_;
+    fast_planner::PlanningVisualization::Ptr visualization_;
     Eigen::Vector3d last_goal_;
     std::ofstream record_file_;
 

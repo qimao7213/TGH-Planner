@@ -3,7 +3,7 @@ project(car_simulator)
 
 add_compile_options(-std=c++17)
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -march=native -msse")
 
 find_package(Eigen3 REQUIRED)
 find_package(catkin REQUIRED COMPONENTS

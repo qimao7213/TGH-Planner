@@ -34,7 +34,7 @@ namespace backward {
 backward::SignalHandling sh;
 }
 
-using namespace fast_planner;
+
 
 int main(int argc, char** argv) {
   ros::init(argc, argv, "fast_planner_node");
@@ -43,8 +43,8 @@ int main(int argc, char** argv) {
   int planner;
   nh.param("planner_node/planner", planner, -1);
 
-  TopoReplanFSM topo_replan;
-  KinoReplanFSM kino_replan;
+  fast_planner::TopoReplanFSM topo_replan;
+  fast_planner::KinoReplanFSM kino_replan;
 
   if (planner == 1) {
     kino_replan.init(nh);

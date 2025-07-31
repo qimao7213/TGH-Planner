@@ -1,6 +1,4 @@
-#ifndef GVG_H
-#define GVG_H
-
+#pragma once
 #include <vector>
 #include <unordered_map>
 #include <queue>
@@ -18,7 +16,7 @@
 #include "DBSCAN2D.h"
 // #define VERBOSE
 // # define DEBUG_IMG
-int stage_ = 0; // 全局变量，用于调试
+// int stage_ = 0; // 全局变量，用于调试
 // cv::Mat voronoi_img(800, 800, CV_8UC3, cv::Scalar(255, 255, 255)); // 创建白色背景的图像
 // cv::Mat voronoi_img2(800, 800, CV_8UC3, cv::Scalar(255, 255, 255)); // 创建白色背景的图像
 // int total_iter_ = 0; // DFS的iter，用于调试
@@ -66,21 +64,21 @@ enum Direction {
     NONE = 0b0000   // 无效
 };
 // 设置某个方向为邻接
-void setDirection(uint8_t& adjacency, Direction dir) {
+static void setDirection(uint8_t& adjacency, Direction dir) {
     adjacency |= dir;  // 按位或，设置对应位为 1
 }
 
 // 检查某个方向是否邻接
-bool isDirectionSet(uint8_t adjacency, Direction dir) {
+static bool isDirectionSet(uint8_t adjacency, Direction dir) {
     return adjacency & dir;  // 按位与，检查对应位是否为 1
 }
 // 清除某个方向的邻接
-void clearDirection(uint8_t& adjacency, Direction dir) {
+static void clearDirection(uint8_t& adjacency, Direction dir) {
     adjacency &= ~dir;  // 按位与和按位取反，清除对应位
 }
 
 // 获取方向的逆方向
-Direction getOppositeDirection(Direction dir) {
+static Direction getOppositeDirection(Direction dir) {
     switch (dir) {
         case UP:    return DOWN;
         case DOWN:  return UP;
@@ -91,7 +89,7 @@ Direction getOppositeDirection(Direction dir) {
 }
 
 // 解析方向编码，返回邻接方向列表
-std::vector<Direction> parseDirection(uint8_t direction_code) {
+static std::vector<Direction> parseDirection(uint8_t direction_code) {
     std::vector<Direction> directions;
 
     if (direction_code & UP) {
@@ -109,7 +107,7 @@ std::vector<Direction> parseDirection(uint8_t direction_code) {
     return directions;
 }
 
-IntPoint getDirection(Direction dir)
+static IntPoint getDirection(Direction dir)
 {
     IntPoint direction(0, 0);
     if (dir & UP) {
@@ -141,12 +139,12 @@ struct GraphNode {
     enum NODE_TYPE { None = 0, Strong = 1, Weak = 2 };
 
     GraphNode(int x, int y, NODE_TYPE type_) : pos(x, y), type(type_), parent() {
-        node_state = NOT_EXPAND;
+        node_state = NOT_EXPAND_GVG;
     }
 
     // 使用WeakPtr来打破循环引用
     void addNeighbor(WeakPtr neighbor, const std::vector<IntPoint>& path, bool sample_check = true) {
-        if (this->type != Strong && !neighbor.lock()->type != Strong) {
+        if (this->type != Strong && !neighbor.lock() && neighbor.lock()->type != Strong) {
             std::cerr << "Error: Only strong nodes can have neighbors." << std::endl;
             return;
         }
@@ -187,11 +185,11 @@ struct GraphNode {
     std::vector<WeakPtr> neighbors;            // 邻居节点（使用WeakPtr）
     std::vector<Path> neighbor_paths;          // 到邻居的路径
 
-    enum NODE_STATE { IN_CLOSE_SET = 'a', IN_OPEN_SET = 'b', NOT_EXPAND = 'c' };
+    enum NODE_STATE { IN_CLOSE_SET_GVG = 0, IN_OPEN_SET_GVG = 1, NOT_EXPAND_GVG = 2 };
     double g_score = 0.0, f_score = 0.0;                   // 用于A*算法
     GraphNode::WeakPtr parent;
     char node_state; 
-    GraphNode() : parent(), node_state(NOT_EXPAND) {} 
+    GraphNode() : parent(), node_state(NOT_EXPAND_GVG) {} 
 };
 
 
@@ -559,7 +557,7 @@ public:
         #endif
 
         // std::cout << "--------在加入等高线后的voronoi图上进行搜索---------" << std::endl;
-        stage_ = 2;
+        // stage_ = 2;
         for (int i = 0; i < strong_grid_vec2.size(); ++i) {
             IntPoint start = strong_grid_vec2[i];
             if ( parseDirection(grid_adjs_[start.y * sizeX_ + start.x]).empty()){
@@ -1559,7 +1557,7 @@ public:
         for (int i = 0; i < use_node_num_; ++i) {
           GraphNode::Ptr node = path_node_pool_[i];
           node->parent.reset();
-          node->node_state = gvg::GraphNode::NOT_EXPAND;
+          node->node_state = gvg::GraphNode::NOT_EXPAND_GVG;
           node->g_score = 0.0;
           node->f_score = 0.0;
         }
@@ -1579,7 +1577,7 @@ public:
         current_node->parent.reset();
         current_node->g_score = 0.0;
         current_node->f_score = lambda_heu_ * getDiagHeu(current_node->pos, goal_node->pos);
-        current_node->node_state = GraphNode::IN_OPEN_SET;
+        current_node->node_state = GraphNode::IN_OPEN_SET_GVG;
       
         open_set_.push(current_node);
         expanded_nodes_.insert(current_node->pos, current_node);
@@ -1596,7 +1594,7 @@ public:
                 return 1;
             }
             open_set_.pop();
-            current_node->node_state = GraphNode::IN_CLOSE_SET;   
+            current_node->node_state = GraphNode::IN_CLOSE_SET_GVG;   
             iter_num_++;         
 
             // 扩展邻居
@@ -1612,7 +1610,7 @@ public:
                 IntPoint neighborPoint = neighbor_node->pos;
                 if(neighbor_node->type != GraphNode::Strong || neighbor_node->RemovedByPVS) continue;                
                 auto expanded_node = expanded_nodes_.find(neighborPoint);
-                if (expanded_node && expanded_node->node_state == GraphNode::IN_CLOSE_SET)
+                if (expanded_node && expanded_node->node_state == GraphNode::IN_CLOSE_SET_GVG)
                     continue;
 
                 double tentative_g_score = current_node->g_score + current_node->neighbor_paths[i].path_length + 1.0; // 假设网格的距离为 1
@@ -1623,14 +1621,14 @@ public:
                     neighbor_node->g_score = tentative_g_score;
                     neighbor_node->f_score = tentative_f_score;
                     neighbor_node->parent = current_node;
-                    neighbor_node->node_state = GraphNode::IN_OPEN_SET;
+                    neighbor_node->node_state = GraphNode::IN_OPEN_SET_GVG;
                     open_set_.push(neighbor_node);
                     expanded_nodes_.insert(neighborPoint, neighbor_node);
                     if (use_node_num_ == allocate_num_) {
                         std::cout << "A star on GVG run out of memory." << std::endl;
                         return 0;
                     }                    
-                }else if(neighbor_node->node_state == GraphNode::IN_OPEN_SET)
+                }else if(neighbor_node->node_state == GraphNode::IN_OPEN_SET_GVG)
                 {
                     if(tentative_g_score < neighbor_node->g_score)
                     {
@@ -1752,7 +1750,7 @@ public:
         start_node->g_score = 0.0;
         start_node->f_score = getDiagHeu(pt1, pt2);
         start_node->parent.reset();
-        start_node->node_state = GraphNode::IN_OPEN_SET;
+        start_node->node_state = GraphNode::IN_OPEN_SET_GVG;
         open_set_.push(start_node);
         expanded_nodes_.insert(pt1, start_node);
 
@@ -1780,7 +1778,7 @@ public:
                 return path;
             }
 
-            cur->node_state = GraphNode::IN_CLOSE_SET;
+            cur->node_state = GraphNode::IN_CLOSE_SET_GVG;
 
             for (int i = 0; i < 4; ++i) {
                 IntPoint nb(cur->pos.x + dx[i], cur->pos.y + dy[i]);
@@ -1800,14 +1798,14 @@ public:
                     new_node->g_score = g_new;
                     new_node->f_score = f_new;
                     new_node->parent = cur;
-                    new_node->node_state = GraphNode::IN_OPEN_SET;
+                    new_node->node_state = GraphNode::IN_OPEN_SET_GVG;
                     open_set_.push(new_node);
                     expanded_nodes_.insert(nb, new_node);
                     if (use_node_num_ == allocate_num_) {
                         std::cout << "A star on GVG run out of memory." << std::endl;
                         return {};
                     }   
-                } else if (nb_node->node_state == GraphNode::IN_OPEN_SET && g_new < nb_node->g_score) {
+                } else if (nb_node->node_state == GraphNode::IN_OPEN_SET_GVG && g_new < nb_node->g_score) {
                     nb_node->g_score = g_new;
                     nb_node->f_score = f_new;
                     nb_node->parent = cur;
@@ -2064,4 +2062,3 @@ private:
 
 };
 }  // namespace gvg
-#endif  // GVG_H

@@ -37,6 +37,7 @@
 #include "path_searching/dubins.h"
 #include "path_searching/astar_2D.h"
 #include "threadPool.h"
+#include "dvr/voronoi_layer.h"
 
 namespace fast_planner {
 
@@ -45,7 +46,7 @@ public:
   std::vector<Eigen::Vector3d> path;
   double length = std::numeric_limits<double>::max();
   bool safty = true;
-  std::pair<vector<Eigen::Vector3d>, vector<Eigen::Vector3d>> path_break = {};
+  std::pair<vector<Eigen::Vector3d>, vector<Eigen::Vector3d>> path_break = {}; // first是从起点到断点的路径，second是从断点到终点的路径
   bool selected = false; // 是否是当前正被选中作为引导路径的，path container里面只允许一个true
 public:
   TopoPath(const std::vector<Eigen::Vector3d>& path_, double length_)
@@ -156,7 +157,7 @@ class TopologyPRM {
 private:
   /* data */
   EDTEnvironment::Ptr edt_environment_;  // environment representation
-
+  std::shared_ptr<DynaVoro::VoronoiLayer> voronoi_layer_;
   // sampling generator
   random_device rd_;
   default_random_engine eng_;
@@ -284,6 +285,14 @@ public:
                      vector<vector<Eigen::Vector3d>>& raw_paths,
                      vector<vector<Eigen::Vector3d>>& filtered_paths,
                      vector<vector<Eigen::Vector3d>>& select_paths);
+  void findVoroPaths(Eigen::Vector3d start, Eigen::Vector3d end,
+                     vector<Eigen::Vector3d> start_pts, vector<Eigen::Vector3d> end_pts,
+                     list<GraphNode::Ptr>& graph, vector<vector<Eigen::Vector3d>>& raw_paths,
+                     vector<vector<Eigen::Vector3d>>& filtered_paths,
+                     vector<vector<Eigen::Vector3d>>& select_paths);
+  vector<vector<Eigen::Vector3d>> getVoroPaths() {
+    return voronoi_layer_->getVoroPaths(ground_height_);
+  }
 
   double pathLength(const vector<Eigen::Vector3d>& path);
   vector<Eigen::Vector3d> pathToGuidePts(vector<Eigen::Vector3d>& path, int pt_num);

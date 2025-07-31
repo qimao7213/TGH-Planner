@@ -3,8 +3,9 @@ project(plan_manage)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++17")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}  -Wall  -O3 -march=native -msse")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3 -march=native -msse")
 find_package(Eigen3 3.1.0 REQUIRED)
 find_package(PCL 1.7 REQUIRED)
 # find_package(glog REQUIRED)

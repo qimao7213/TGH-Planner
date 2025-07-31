@@ -2,7 +2,7 @@
 #include "dvr/voronoi_layer.h"
 // #define VERBOSE
 bool debug_flag_ = false;
-
+using namespace gvg;
 namespace DynaVoro
 {
 VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
@@ -15,7 +15,7 @@ VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
   clearance_low_ = static_cast<float>(clearance_lowd);   //小于这个值的维诺点不要
   clearance_high_ = static_cast<float>(clearance_highd); //大于这个值的维诺点不要,包络线
   ROS_WARN_STREAM("VoronoiLayer: resolution: " << resolution_ << ", clearance_low: " << clearance_low_ << ", clearance_high: " << clearance_high_);
-  visualization_.reset(new fast_planner::PlanningVisualization(nh));
+  // visualization_.reset(new fast_planner::PlanningVisualization(nh));
   clearance_low_thr_ = clearance_low_ * clearance_low_ / resolution_ / resolution_;
   clearance_high_thr_ = clearance_high_ * clearance_high_ / resolution_ / resolution_;
 
@@ -26,7 +26,6 @@ VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
 
   costmap_sub_ = nh.subscribe<nav_msgs::OccupancyGrid>("/sdf_map/occupancy_2D", 1, &VoronoiLayer::costmapCB, this);
   odometry_sub_ = nh.subscribe<nav_msgs::Odometry>("/car_odom", 1, &VoronoiLayer::odometryCallback, this);
-  rviz_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &VoronoiLayer::rvizGoalCallback, this);
   
   voronoi_grid_pub_ = nh.advertise<nav_msgs::OccupancyGrid>("/voronoi_grid", 10);
   voronoi_grid_origin_pub_ = nh.advertise<nav_msgs::OccupancyGrid>("/voronoi_grid_origin", 10);
@@ -38,8 +37,9 @@ VoronoiLayer::VoronoiLayer(ros::NodeHandle& nh)
   path_pub_test_1_ = nh.advertise<nav_msgs::Path>("/voronoi_path_test1", 10);
   path_pub_test_2_ = nh.advertise<nav_msgs::Path>("/voronoi_path_test2", 10);
   path_pub_test_3_ = nh.advertise<nav_msgs::Path>("/voronoi_path_test3", 10);
-
-  plan_timer_ = nh.createTimer(ros::Duration(0.2), &VoronoiLayer::planTimerCallback, this);
+  
+  // rviz_goal_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/move_base_simple/goal", 1, &VoronoiLayer::rvizGoalCallback, this);
+  // plan_timer_ = nh.createTimer(ros::Duration(0.2), &VoronoiLayer::planTimerCallback, this);
   voronoi_update_timer_ = nh.createTimer(ros::Duration(2), &VoronoiLayer::voronoiUpdateTimerCallback, this);
 }
 
@@ -501,6 +501,8 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
     last_best_path_.clear();
     goal_last_ = goal;
   }
+  voro_paths_raw_world_.clear();
+  voro_paths_shortcut_.clear();
   // start.x() = 18.7321;
   // start.y() = -7.11596;
   // start.z() = 1.25864;
@@ -532,11 +534,16 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
   goal_pt.x() = goal_coord.x();
   goal_pt.y() = goal_coord.y();
   if (lineVisib(start_pt, goal_pt, (clearance_low_ - 0.05) / resolution_, colli_pt)) {
-      publishPath({});
-      publishPath2({start_pt, goal_pt});
-      ROS_WARN_STREAM("Start and goal are visible, return straight line path.");
-      last_best_path_ = discretizePath({start_pt, goal_pt});
-      return true;
+    publishPath({});
+    publishPath2({start_pt, goal_pt});
+    ROS_WARN_STREAM("Start and goal are visible, return straight line path.");
+    last_best_path_ = discretizePath({start_pt, goal_pt});
+
+    std::vector<Eigen::Vector2d> voro_path_shortcut;
+    voro_path_shortcut.emplace_back(start.head<2>());
+    voro_path_shortcut.emplace_back(goal.head<2>());
+    voro_paths_shortcut_.emplace_back(voro_path_shortcut);
+    return true;
   }
 
   vector<IntPoint> strong_nodes;
@@ -550,6 +557,12 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
     publishPath({});
     publishPath2({start_pt, goal_pt});
     ROS_WARN_STREAM("There is no graph. Return the stright of start and end.");
+    last_best_path_ = discretizePath({start_pt, goal_pt});
+
+    std::vector<Eigen::Vector2d> voro_path_shortcut;
+    voro_path_shortcut.emplace_back(start.head<2>());
+    voro_path_shortcut.emplace_back(goal.head<2>());
+    voro_paths_shortcut_.emplace_back(voro_path_shortcut);
     return true;
   }
 
@@ -624,7 +637,8 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
   // }
 
   // 在这里进行10次重复规划
-  std::vector<std::vector<Eigen::Vector2d>> topo_paths;
+  // 轨迹的发布和可视化也在另外的地方去进行
+  std::vector<std::vector<Eigen::Vector2d>> voro_paths_raw;      //这个是在图像坐标系下的
 
   int path_found_num = 0;
   int path_search_times = 3;
@@ -639,21 +653,30 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
       // #endif
       std::vector<IntPoint> path_nodes_sparse = gvg_planner_->getFullPathNodes();
       std::vector<IntPoint> path_nodes = gvg_planner_->getFullPath();
-      if (path_nodes.size() > 4 * min_path_length && path_nodes.size() > 2 * last_size_x_)
+      if (path_nodes.size() > 4 * min_path_length && path_nodes.size() > 3 * last_size_x_)
       {
         ROS_WARN_STREAM("Break because current's raw path is more than 5 times longer of min_path_length.");
         break;
       }      
-      publishPath(path_nodes);
+      // publishPath(path_nodes);
       timer.reset();
       vector<Eigen::Vector2d> short_path = shortcutPath(path_nodes, 0, 2);
       // #ifdef VERBOSE
         timer.print("Plan Short Path");
       // #endif
-      publishPath2(short_path);
-      topo_paths.emplace_back(short_path);
+      // publishPath2(short_path);
+      voro_paths_raw.emplace_back(short_path);
       gvg_updated_ = false;
       path_found_num ++;
+
+      // 这都是在世界坐标系下的，要传递出去的
+      std::vector<Eigen::Vector2d> voro_path_raw;
+      std::vector<Eigen::Vector2d> voro_path_shortcut;
+      // for(const auto& pt : path_nodes) voro_path_raw.emplace_back(coordToWorldX(pt.x), coordToWorldY(pt.y));
+      // voro_paths_raw_world_.emplace_back(voro_path_raw);
+      for(const auto& pt : short_path) 
+        voro_path_shortcut.emplace_back(coordToWorldNoOffsetX(pt.x()), coordToWorldNoOffsetY(pt.y()));
+      voro_paths_shortcut_.emplace_back(voro_path_shortcut);
 
       if (path_nodes_sparse.size() <= 4) {
           // 不足5个点，直接不再继续规划
@@ -662,9 +685,9 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
       }
       double current_path_length = pathLength(short_path);
       int short_times;
-      if (min_path_length < 20.0) short_times = 4;
-      else if (20.0 <= min_path_length && min_path_length < 80.0) short_times = 3;
-      else if (80.0 <= min_path_length) short_times = 2.2;
+      if (min_path_length * resolution_ < 20.0 ) short_times = 4;
+      else if (20.0 <= min_path_length * resolution_  && min_path_length * resolution_  < 80.0) short_times = 3;
+      else if (80.0 <= min_path_length * resolution_ ) short_times = 2.2;
 
       if (current_path_length > short_times * min_path_length)
       {
@@ -722,88 +745,88 @@ bool VoronoiLayer::plan(Eigen::Vector3d start, Eigen::Vector3d goal, double star
       node_pair.second->RemovedByPVS = false;
     }
   }
+  std::cout << "Path search finished, found " << path_found_num << " paths." << std::endl;
+  // if (path_found_num == 0)
+  // {
+  //   std::cout << "No path found after 10 iterations." << std::endl;
+  //   gvg_updated_ = false;
+  //   return false;
+  // }
+  // else // 选择最优的一条
+  // {
+  //   std::vector<std::vector<Eigen::Vector3d>> paths_for_publish;
+  //   std::vector<Eigen::Vector3d> path_for_publish;
+  //   std::vector<double> path_lengths;
+  //   std::vector<double> path_angle_diffs;
+  //   std::vector<double> path_angle_penalties;
+  //   std::vector<double> path_sim_to_last;
+  //   std::vector<std::vector<Eigen::Vector2d>> disected_paths = discretizePaths(voro_paths_raw);
+  //   int idx = -1;
+  //   for (const auto& path : voro_paths_raw)
+  //   {
+  //     ++idx;
+  //     path_for_publish.clear();
+  //     for (const auto& pt : path)
+  //     {   
+  //       path_for_publish.emplace_back(Eigen::Vector3d(
+  //                                      (double)coordToWorldNoOffsetX(pt.x()), 
+  //                                      (double)coordToWorldNoOffsetX(pt.y()), 
+  //                                      0.1));
+  //     }
 
-  if (path_found_num == 0)
-  {
-    std::cout << "No path found after 10 iterations." << std::endl;
-    gvg_updated_ = false;
-    return false;
-  }
-  else // 选择最优的一条
-  {
-    std::vector<std::vector<Eigen::Vector3d>> paths_for_publish;
-    std::vector<Eigen::Vector3d> path_for_publish;
-    std::vector<double> path_lengths;
-    std::vector<double> path_angle_diffs;
-    std::vector<double> path_angle_penalties;
-    std::vector<double> path_sim_to_last;
-    std::vector<std::vector<Eigen::Vector2d>> disected_paths = discretizePaths(topo_paths);
-    int idx = -1;
-    for (const auto& path : topo_paths)
-    {
-      ++idx;
-      path_for_publish.clear();
-      for (const auto& pt : path)
-      {   
-        path_for_publish.emplace_back(Eigen::Vector3d(
-                                       (double)coordToWorldNoOffsetX(pt.x()), 
-                                       (double)coordToWorldNoOffsetX(pt.y()), 
-                                       0.1));
-      }
+  //     paths_for_publish.emplace_back(path_for_publish);
+  //     path_lengths.push_back(pathLength(path));      
+  //     double path_angle = std::atan2(path[1].y() - path[0].y(), path[1].x() - path[0].x());
+  //     double angle_diff = path_angle - start_yaw;
+  //     // 归一化到 [-pi, pi]
+  //     while (angle_diff > M_PI) angle_diff -= 2 * M_PI;
+  //     while (angle_diff < -M_PI) angle_diff += 2 * M_PI;
+  //     path_angle_diffs.emplace_back(std::abs(angle_diff));
+  //     path_angle_penalties.emplace_back(std::abs(1.0 - std::cos(path_angle_diffs.back())));
+  //     if (last_best_path_.empty()) 
+  //     {
+  //       path_sim_to_last.push_back(0.0); // 如果没有上一个最优路径，则相似度为0
+  //       continue;
+  //     }
+  //     // 计算与上一个最优路径的相似度
+  //     double sim = 0.0;
+  //     int check_num = std::min(std::min(disected_paths[idx].size(), last_best_path_.size()), (size_t)(10.0/resolution_));
+  //     for (int i = 0; i < check_num; ++i)
+  //     {
+  //       double dist = (disected_paths[idx][i] - last_best_path_[i]).norm();
+  //       sim += dist;
+  //     }
+  //     path_sim_to_last.push_back(sim / check_num);
+  //   }
+  //   // visualization_->drawTopoVoronoiPaths(paths_for_publish, 0.2);  
+  //   std::cout << "Found " << path_found_num << " paths." << std::endl;
 
-      paths_for_publish.emplace_back(path_for_publish);
-      path_lengths.push_back(pathLength(path));      
-      double path_angle = std::atan2(path[1].y() - path[0].y(), path[1].x() - path[0].x());
-      double angle_diff = path_angle - start_yaw;
-      // 归一化到 [-pi, pi]
-      while (angle_diff > M_PI) angle_diff -= 2 * M_PI;
-      while (angle_diff < -M_PI) angle_diff += 2 * M_PI;
-      path_angle_diffs.emplace_back(std::abs(angle_diff));
-      path_angle_penalties.emplace_back(std::abs(1.0 - std::cos(path_angle_diffs.back())));
-      if (last_best_path_.empty()) 
-      {
-        path_sim_to_last.push_back(0.0); // 如果没有上一个最优路径，则相似度为0
-        continue;
-      }
-      // 计算与上一个最优路径的相似度
-      double sim = 0.0;
-      int check_num = std::min(std::min(disected_paths[idx].size(), last_best_path_.size()), (size_t)(10.0/resolution_));
-      for (int i = 0; i < check_num; ++i)
-      {
-        double dist = (disected_paths[idx][i] - last_best_path_[i]).norm();
-        sim += dist;
-      }
-      path_sim_to_last.push_back(sim / check_num);
-    }
-    visualization_->drawTopoVoronoiPaths(paths_for_publish, 0.2);  
-    std::cout << "Found " << path_found_num << " paths." << std::endl;
+  //   int best_path_idx = 0;
+  //   double min_penalty = 1000000.0;
+  //   double w_angle = 0.5;    // 权重，控制角度惩罚和长度惩罚的比例
+  //   double w_sim_last = 1.0; // 权重，控制与上一个最优路径的相似度的影响
+  //   for (int i = 0; i < path_found_num; ++i)
+  //   {
+  //     double penalty = path_lengths[i] + 
+  //                      (path_angle_penalties[i]) * std::min(path_lengths[i], (10.0/resolution_)) * w_angle + 
+  //                       path_sim_to_last[i] * w_sim_last;
+  //     if (penalty < min_penalty)
+  //     {
+  //       min_penalty = penalty;
+  //       best_path_idx = i;
+  //     }
+  //   }
+  //   last_best_path_ = disected_paths[best_path_idx];
+  //   std::cout << "Best path index: " << best_path_idx << ", length: " 
+  //             << path_lengths[best_path_idx] << ", angle diff: " 
+  //             << path_angle_diffs[best_path_idx] <<  ", sim to last: " 
+  //             << path_sim_to_last[best_path_idx] << ", penalty: " << std::endl;
+  //   // 发布最优路径
+  //   publishPath2(voro_paths_raw[best_path_idx]);
 
-    int best_path_idx = 0;
-    double min_penalty = 1000000.0;
-    double w_angle = 0.5;    // 权重，控制角度惩罚和长度惩罚的比例
-    double w_sim_last = 1.0; // 权重，控制与上一个最优路径的相似度的影响
-    for (int i = 0; i < path_found_num; ++i)
-    {
-      double penalty = path_lengths[i] + 
-                       (path_angle_penalties[i]) * std::min(path_lengths[i], (10.0/resolution_)) * w_angle + 
-                        path_sim_to_last[i] * w_sim_last;
-      if (penalty < min_penalty)
-      {
-        min_penalty = penalty;
-        best_path_idx = i;
-      }
-    }
-    last_best_path_ = disected_paths[best_path_idx];
-    std::cout << "Best path index: " << best_path_idx << ", length: " 
-              << path_lengths[best_path_idx] << ", angle diff: " 
-              << path_angle_diffs[best_path_idx] <<  ", sim to last: " 
-              << path_sim_to_last[best_path_idx] << ", penalty: " << std::endl;
-    // 发布最优路径
-    publishPath2(topo_paths[best_path_idx]);
-
-    gvg_updated_ = false;
-    return true;
-  }
+  //   gvg_updated_ = false;
+  //   return true;
+  // }
 
   int debug = 0;
 }

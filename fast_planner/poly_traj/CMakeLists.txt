@@ -3,7 +3,7 @@ project(poly_traj)
 
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++17")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -g -march=native -msse")
 
 find_package(Eigen3 REQUIRED)
 

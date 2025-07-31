@@ -343,22 +343,22 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     topo_prm_->setStartChange(start_change);
     list<GraphNode::Ptr>            graph;
     vector<vector<Eigen::Vector3d>> raw_paths, filtered_paths, select_paths;
-    topo_prm_->findTopoPaths(start_pt_forward, end_pt, vector<Eigen::Vector3d>(), vector<Eigen::Vector3d>(), 
+    topo_prm_->findVoroPaths(start_pt_forward, end_pt, vector<Eigen::Vector3d>(), vector<Eigen::Vector3d>(), 
                              graph, raw_paths, filtered_paths, select_paths);
 
     // if (select_paths.size() == 0) {
     //   ROS_WARN("[Topo]: No path.");
     // }else
     {
-       plan_data_.addTopoPaths(graph, raw_paths, topo_prm_->getPathContainer(2), topo_prm_->getPathContainer(1));
-       plan_data_.topo_guide_path_ = topo_prm_->findDubinsShots(start_pt_forward, kino_path_finder_->getSteerRadius());
+      //  plan_data_.addTopoPaths(graph, raw_paths, topo_prm_->getPathContainer(2), topo_prm_->getPathContainer(1));
+      //  plan_data_.topo_guide_path_ = topo_prm_->findDubinsShots(start_pt_forward, 0.5 * kino_path_finder_->getSteerRadius());
     }
-    plan_data_.topo_sample_area_ = topo_prm_->getSampleArea();
+    // plan_data_.topo_sample_area_ = topo_prm_->getSampleArea();
   }
   t_topo = (ros::Time::now() - t1).toSec();
   t1                    = ros::Time::now(); //更新当前时间
   kino_path_finder_->reset();
-  if(!plan_data_.topo_guide_path_.empty()) kino_path_finder_->setGuidePath(plan_data_.topo_guide_path_);
+  // if(!plan_data_.topo_guide_path_.empty()) kino_path_finder_->setGuidePath(plan_data_.topo_guide_path_);
   int status = kino_path_finder_->search(start_pt, start_vel, start_acc, start_yaw(0), end_pt, end_vel, end_yaw(0), true);
   if (status == KinodynamicAstar::NO_PATH) 
   {
@@ -525,7 +525,7 @@ bool FastPlannerManager::kinodynamicReplan(Eigen::Vector3d start_pt, Eigen::Vect
     opt_t3 = ros::Time::now();
     int fix_num_start, fix_num_end;
     bspline_optimizers_[4]->checkFixInterval(fix_num_start, fix_num_end);
-    ROS_WARN_STREAM("fix_num: " << fix_num_start << ", " << fix_num_end);
+    // ROS_WARN_STREAM("fix_num: " << fix_num_start << ", " << fix_num_end);
     fix_num_start = std::max(6, std::min(9, fix_num_start));
     fix_num_end = std::max(6, std::min(9, fix_num_end));   
     if (status != KinodynamicAstar::REACH_END) {
@@ -1028,7 +1028,7 @@ void FastPlannerManager::updateTrajInfo() {
 // 在优化阶段，用中间的yaw当作waypoints来引导
 // 这么做的目的是防止smooth项来yaw角全部拉平
 void FastPlannerManager::planYaw(const Eigen::Vector3d& start_yaw, const Eigen::Vector3d& end_yaw_traj) {
-  ROS_INFO("plan yaw");
+  // ROS_INFO("plan yaw");
   auto t1 = ros::Time::now();
   // calculate waypoints of heading
   auto&  pos      = local_data_.position_traj_;
@@ -1162,7 +1162,7 @@ void FastPlannerManager::planYaw(const Eigen::Vector3d& start_yaw, const Eigen::
     local_data_.yawdotdot_traj_ = local_data_.yawdot_traj_.getDerivative();
   }
 
-  std::cout << "[plan yaw] plan heading: " << (ros::Time::now() - t1).toSec() << ", last yaw: " << last_yaw << ", use FeasYAW: " << opt2_succ << std::endl;
+  // std::cout << "[plan yaw] plan heading: " << (ros::Time::now() - t1).toSec() << ", last yaw: " << last_yaw << ", use FeasYAW: " << opt2_succ << std::endl;
 }
 
 // 将所有的yaw角卡在初始yaw+[-pi, pi]范围内。防止环绕引起的跳变

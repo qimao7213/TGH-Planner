@@ -27,8 +27,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/core.hpp>
-#include <traj_utils/planning_visualization.h>
-using namespace gvg;
+// #include <traj_utils/planning_visualization.h>
+
 using std::vector;
 namespace DynaVoro
 {
@@ -40,12 +40,24 @@ public:
   const DynamicVoronoi& getVoronoi() const;
   boost::mutex& getMutex();
   bool plan(Eigen::Vector3d start, Eigen::Vector3d goal, double start_yaw = 0.0);
+  std::vector<std::vector<Eigen::Vector3d>> getVoroPaths(double ground_height_) const
+  {
+    std::vector<std::vector<Eigen::Vector3d>> voro_paths;
+    for (const auto& path : voro_paths_shortcut_) {
+      std::vector<Eigen::Vector3d> path3d;
+      for (const auto& pt : path) {
+        path3d.emplace_back(pt.x(), pt.y(), ground_height_);
+      }
+      voro_paths.emplace_back(path3d);
+    }
+    return voro_paths;
+  }
 
 
 private:
   void publishVoronoiGrid();
   void publishDistanceCloud();
-  void publishGVG(const std::vector<std::unordered_map<IntPoint, GraphNode::Ptr>>& gvg);
+  void publishGVG(const std::vector<std::unordered_map<IntPoint, gvg::GraphNode::Ptr>>& gvg);
   void publishPath(const std::vector<IntPoint>& path_nodes);
   void publishPath2(const std::vector<Eigen::Vector2d>& path_nodes);
   void outlineMap(unsigned char* costarr, int nx, int ny, unsigned char value);
@@ -127,10 +139,12 @@ private:
   float clearance_low_, clearance_high_;
   float clearance_low_thr_, clearance_high_thr_;
   boost::mutex mutex_;
-  std::shared_ptr<GVG> gvg_;
+  std::shared_ptr<gvg::GVG> gvg_;
   pcl::KdTreeFLANN<pcl::PointXY> GvgNodeKdTree_;
   std::shared_ptr<gvg::Planner> gvg_planner_;
-  fast_planner::PlanningVisualization::Ptr visualization_;
+
+  // 这个都是世界坐标系下的，要传递出去的.voro_paths_raw_world_是稠密的，voro_paths_shortcut_是稀疏的
+  std::vector<std::vector<Eigen::Vector2d>> voro_paths_raw_world_, voro_paths_shortcut_;
 
   Eigen::Vector3d odom_pos_, odom_vel_;  // odometry state
   Eigen::Vector3d lastest_goal_;
@@ -162,14 +176,14 @@ private:
   vector<Eigen::Vector2d> discretizePath(const vector<Eigen::Vector2d>& path);
   vector<vector<Eigen::Vector2d>> discretizePaths(vector<vector<Eigen::Vector2d>>& path);
   vector<Eigen::Vector2d> discretizeLine(Eigen::Vector2d p1, Eigen::Vector2d p2);
-  GraphNode::Ptr creatPathNode(
+  gvg::GraphNode::Ptr creatPathNode(
     const Eigen::Vector2i& node_idx,
     int& start_graph_id,
     bool& node_on_graph,
     const vector<IntPoint>& node_strong_cloud,
     int KdNeighborNum,
     bool startNode,
-    GraphNode::Ptr node_tmp_ptr);
+    gvg::GraphNode::Ptr node_tmp_ptr);
   void removeNodeAndConnections(gvg::GraphNode::Ptr node);
   void removeNodeAndRepairStrongConnection(gvg::GraphNode::Ptr node_tmp_ptr);
 };

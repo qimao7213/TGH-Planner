@@ -313,7 +313,7 @@ void BsplineOptimizer::optimize() {
     }
   }
 
-  if (!(cost_function_ & GUIDE)) ROS_INFO_STREAM("iter num: " << iter_num_);
+  // if (!(cost_function_ & GUIDE)) ROS_INFO_STREAM("iter num: " << iter_num_);
 }
 
 void BsplineOptimizer::calcSmoothnessCost(const vector<Eigen::Vector3d>& q, double& cost,
@@ -911,7 +911,7 @@ void BsplineOptimizer::combineCost(const std::vector<double>& x, std::vector<dou
   }
   if(if_printf_ && 1)
   {
-    std::cout << "------------ iter num: " << iter_num_ << std::endl;
+    // std::cout << "------------ iter num: " << iter_num_ << std::endl;
     #ifdef LOG_INFO
     LOG(INFO) << std::endl; 
     LOG(INFO) << "------------ iter num: " << iter_num_ << std::endl;

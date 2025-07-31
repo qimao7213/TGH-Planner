@@ -112,6 +112,7 @@ void TopologyPRM::init(ros::NodeHandle& nh) {
   nh.param("topo_prm/FilePath", file_path_);
   resolution_ = edt_environment_->sdf_map_->getResolution();
   offset_ = Eigen::Vector3d(0.5, 0.5, 0.5) - edt_environment_->sdf_map_->getOrigin() / resolution_;
+  voronoi_layer_ = std::make_shared<DynaVoro::VoronoiLayer>(nh);
   grah_vis_pub_ = nh.advertise<visualization_msgs::Marker>("/TopoPlan/graph", 20);
   sampled_points_.reserve(max_sample_num_);
   skip_scale_ = ((clearance_line_ * 1.414) / resolution_);
@@ -154,6 +155,7 @@ void TopologyPRM::initForTest(ros::NodeHandle& nh) {
   sampled_points_.reserve(max_sample_num_);  
   resolution_ = edt_environment_->sdf_map_->getResolution();
   offset_ = Eigen::Vector3d(0.5, 0.5, 0.5) - edt_environment_->sdf_map_->getOrigin() / resolution_;
+  voronoi_layer_ = std::make_shared<DynaVoro::VoronoiLayer>(nh);
   grah_vis_pub_ = nh.advertise<visualization_msgs::Marker>("/TopoPlan/graph", 20);
   path_1_pub_ = nh.advertise<nav_msgs::Path>("/TopoPlan/path_1", 10);
   path_2_pub_ = nh.advertise<nav_msgs::Path>("/TopoPlan/path_2", 10);
@@ -172,6 +174,77 @@ void TopologyPRM::initForTest(ros::NodeHandle& nh) {
   astar2D_path_finder_->setEnvironment(edt_environment_);
   ROS_WARN("----Topo path finder init!------");
 }
+
+void TopologyPRM::findVoroPaths(Eigen::Vector3d start, Eigen::Vector3d end,
+                                vector<Eigen::Vector3d> start_pts, vector<Eigen::Vector3d> end_pts,
+                                list<GraphNode::Ptr>& graph, vector<vector<Eigen::Vector3d>>& raw_paths,
+                                vector<vector<Eigen::Vector3d>>& filtered_paths,
+                                vector<vector<Eigen::Vector3d>>& select_paths)
+{
+  ros::Time t1, t2;
+  double voro_plan_time, short_time, prune_time, select_time, preprocess_time;
+  /* ---------- create the topo graph ---------- */
+  t1 = ros::Time::now();
+  start.z() = ground_height_;
+  end.z() = ground_height_;
+  if(topo_test_ && only2D_) //这里地方是因为测试topo的时候，地图要spin后才产生的. 这个地方想办法简化一下？
+  {
+    start.z() = ground_height_;
+    end.z() = ground_height_;
+    for(auto & pt : start_pts) pt.z() = ground_height_;
+    for(auto & pt : end_pts) pt.z() = ground_height_;
+    resolution_ = edt_environment_->sdf_map_->getResolution();
+    offset_ = Eigen::Vector3d(0.5, 0.5, 0.5) - edt_environment_->sdf_map_->getOrigin() / resolution_;
+    skip_scale_ = ((clearance_line_ * 1.414) / resolution_);
+    astar2D_path_finder_->init();
+    edt_environment_->sdf_map_->getRegion(map_origin_, map_size_);
+  }
+  
+  std::cout << "[Topo Voro]: start: " << start.transpose() << ", end: " << end.transpose() << "\n";
+  // std::cout << "skip_scale_: " << skip_scale_ << std::endl;
+  start_pts_ = start_pts;
+  end_pts_ = end_pts;
+  record_data_.reset();
+  
+  // 关闭preprocess并清理掉path_container的话，就相当于关闭了TopoPathSet
+  // path_container_front_.clear();  
+  // path_container_back_.clear(); 
+  preprocess();
+  // if (!path_container_front_.empty() && !path_container_back_.empty()) 
+  //   return;
+  double sleep_time = 0.0;
+  if(topo_test_) sleep_time = 0.00;
+  ros::Duration(sleep_time).sleep();   
+  preprocess_time = (ros::Time::now() - t1).toSec();
+  t1 = ros::Time::now();
+  voronoi_layer_->plan(start, end, 0.0);
+  std::cout <<"ssss" << std::endl;
+  short_paths_ = voronoi_layer_->getVoroPaths(ground_height_);
+  voro_plan_time = (ros::Time::now() - t1).toSec();
+  /* ---------- prune equivalent paths ---------- */
+  t1 = ros::Time::now();
+
+  std::cout << "pruneEquivalent start!" << std::endl;
+  filtered_paths = pruneEquivalent(short_paths_);
+  std::cout << "pruneEquivalent end!" << std::endl;
+
+  prune_time = (ros::Time::now() - t1).toSec();
+
+  /* ---------- select N shortest paths ---------- */
+  t1 = ros::Time::now();
+
+  std::cout << "selectShortPathsV2 start!" << std::endl;
+  selectShortPathsV2(filtered_paths);
+  std::cout << "selectShortPathsV2 end!" << std::endl;
+  // select_paths = selectShortPaths(filtered_paths, 1);
+
+  select_time = (ros::Time::now() - t1).toSec();
+  double total_time = preprocess_time + voro_plan_time + short_time + prune_time + select_time;
+  std::cout << "\n[Topo]: total time: " << total_time << ", preprocess: " << preprocess_time 
+            << ", voro: " << voro_plan_time << ", short: " << short_time << ", prune: " << prune_time
+            << ", select: " << select_time << std::endl;
+}
+
 
 void TopologyPRM::findTopoPaths(Eigen::Vector3d start, Eigen::Vector3d end,
                                 vector<Eigen::Vector3d> start_pts, vector<Eigen::Vector3d> end_pts,
@@ -202,10 +275,12 @@ void TopologyPRM::findTopoPaths(Eigen::Vector3d start, Eigen::Vector3d end,
   end_pts_ = end_pts;
   record_data_.reset();
   
-  // 关闭preprocess并清理掉path_container的话，是不是就相当于关闭了增量拓扑图？XX
+  // 关闭preprocess并清理掉path_container的话，就相当于关闭了TopoPathSet
   // path_container_front_.clear();  
   // path_container_back_.clear(); 
   preprocess();
+  // if (!path_container_front_.empty() && !path_container_back_.empty()) 
+  //   return;
   double sleep_time = 0.0;
   if(topo_test_) sleep_time = 0.00;
   ros::Duration(sleep_time).sleep();   
@@ -228,14 +303,18 @@ void TopologyPRM::findTopoPaths(Eigen::Vector3d start, Eigen::Vector3d end,
 
   // 在short之后再检查一次同伦。
   // 因为没有short之前，路径可能歪歪扭扭的，用UVD检查的话可能会出问题。
+  std::cout << "shortcutPaths start!" << std::endl;
   shortcutPaths();
+  std::cout << "shortcutPaths end!" << std::endl;
 
   short_time = (ros::Time::now() - t1).toSec();
 
   /* ---------- prune equivalent paths ---------- */
   t1 = ros::Time::now();
 
+  std::cout << "pruneEquivalent start!" << std::endl;
   filtered_paths = pruneEquivalent(short_paths_);
+  std::cout << "pruneEquivalent end!" << std::endl;
 
   prune_time = (ros::Time::now() - t1).toSec();
   // cout << "prune: " << (t2 - t1).toSec() << endl;
@@ -243,7 +322,9 @@ void TopologyPRM::findTopoPaths(Eigen::Vector3d start, Eigen::Vector3d end,
   /* ---------- select N shortest paths ---------- */
   t1 = ros::Time::now();
 
+  std::cout << "selectShortPathsV2 start!" << std::endl;
   selectShortPathsV2(filtered_paths);
+  std::cout << "selectShortPathsV2 end!" << std::endl;
   // select_paths = selectShortPaths(filtered_paths, 1);
 
   select_time = (ros::Time::now() - t1).toSec();
@@ -712,6 +793,7 @@ void TopologyPRM::selectShortPathsV2(const vector<vector<Eigen::Vector3d>>& path
   // move_backward是从last-1开始依次移动（从右到坐），最后last到达result;
 
   double minLength = std::numeric_limits<double>::max();
+  int new_insert_path_count = 0;
   for (const auto& path : paths) {
     double path_length = pathLength(path);
     TopoPath newPath(path, path_length);
@@ -722,7 +804,7 @@ void TopologyPRM::selectShortPathsV2(const vector<vector<Eigen::Vector3d>>& path
         (newPath.length < path_container_front_.back().length && newPath.length < minLength * ratio_to_short_)) {
         auto insertPos = std::lower_bound(path_container_front_.begin(), path_container_front_.end(), newPath);
         path_container_front_.insert(insertPos, newPath);
-
+        ++ new_insert_path_count;
         // 如果前部分超出容量，删除最长路径
         if (path_container_front_.size() > path_container_size_half_) {
             path_container_front_.pop_back();
@@ -749,7 +831,8 @@ void TopologyPRM::selectShortPathsV2(const vector<vector<Eigen::Vector3d>>& path
   if(!isNonDecreasing(path_container_front_)) ROS_ERROR("Wrong path_container_front_!");
   if(!isNonDecreasing(path_container_back_)) ROS_ERROR("Wrong path_container_back_!");
   // if(path_container_front_.back().length > path_container_back_.front().length) ROS_ERROR("Wrong path between front and back!");
-  ROS_WARN_STREAM("Front size: " << path_container_front_.size() << ", Back size: " << path_container_back_.size());
+  ROS_WARN_STREAM("Front size: " << path_container_front_.size() << ", Back size: " << path_container_back_.size() << 
+                  ", New insert path count (close set): " << new_insert_path_count);
   // static int last_size = path_container_front_.size();
   // if(path_container_front_.size() == 1 && last_size > 1) ros::Duration(10).sleep();
   // last_size = path_container_front_.size();
@@ -945,7 +1028,7 @@ void TopologyPRM::shortcutPath(const vector<Eigen::Vector3d>& path, int path_id,
         dir = (dis_path[i] - short_path.back()).normalized();
         push_dir = grad - grad.dot(dir) * dir;
         push_dir.normalize();
-        colli_pt = colli_pt + resolution_ * push_dir;
+        colli_pt = colli_pt + resolution_ * 1.3 * push_dir;
       }
       short_path.push_back(colli_pt);
     }
@@ -965,7 +1048,7 @@ void TopologyPRM::shortcutPath(const vector<Eigen::Vector3d>& path, int path_id,
   short_paths_[path_id] = short_path;
 }
 
-// 重载一个给path_container shortcur的
+// 重载一个给path_container shortcut的
 void TopologyPRM::shortcutPath(const int& path_id, const bool& inFront, const int& iter_num) {
   TopoPath& onePath = inFront ? path_container_front_[path_id] : path_container_back_[path_id];
   vector<Eigen::Vector3d> short_path = onePath.path;
@@ -1599,6 +1682,7 @@ vector<Eigen::Vector3d> TopologyPRM::findDubinsShots(const Eigen::Vector3d& star
   {
     ROS_ERROR("Also Can not find dubins shot in path_container_back_! ERROR!");  
     minPathIdx = 0;  
+    return path_container_front_[0].path;
   }
 
   // publishTestPath(dubins_shot_paths_[minPathIdx], 1); 
@@ -1634,16 +1718,16 @@ void TopologyPRM::findDubinsShot(const vector<Eigen::Vector3d>& path, const int&
     double dubins_length = dubins_path_length(&dubinsPath);
     double path_length = dubins_length + (dis_path.size() - i) * resolution_;
     bool isValid = true;
-    while (x <  dubins_length){
+    while (x <  dubins_length){ // 如果关闭dubinsShot时的碰撞检测呢？
       double q[3];
       dubins_path_sample(&dubinsPath, x, q);
       x += move_step_size;      
       Eigen::Vector3d path_pt(q[0], q[1], ground_height_);
-      if(edt_environment_->sdf_map_->getDistance2D(path_pt) <= 0.5 * clearance_)
-      {
-        isValid = false;
-        break;
-      } 
+      // if(edt_environment_->sdf_map_->getDistance2D(path_pt) <= 0.5 * clearance_)
+      // {
+      //   isValid = false;
+      //   break;
+      // } 
       dubins_path.emplace_back(path_pt);
     }
     // publishTestPath(dubins_path, 2);    
@@ -1694,7 +1778,9 @@ vector<vector<Eigen::Vector3d>> TopologyPRM::getPathContainer(const int& label)
 }
 
 
-
+// 从path的终点回溯dis距离，返回新的路径
+// 这是为了让path的终点不要离障碍物太近
+// 但是这里会不会造成死循环？
 vector<Eigen::Vector3d> TopologyPRM::backtrackFromEnd(const std::vector<Eigen::Vector3d>& path, double dis) 
 {
     if (path.empty()) {
@@ -1800,6 +1886,7 @@ void TopologyPRM::checkPathContainerObstacle()
   }
 }
 
+// 我觉得这里，不如直接将路径离散化，然后判断每一个路径点的esdf值是否安全。
 void TopologyPRM::checkPathObstacle(const int& path_id, const bool& inFront)
 {
   TopoPath& onePath = inFront ? path_container_front_[path_id] : path_container_back_[path_id]; 
@@ -1889,8 +1976,8 @@ void TopologyPRM::reconnectTopoPaths()
       
     Eigen::Vector3d break_start = path_container_front_[i].path_break.first.back();
     Eigen::Vector3d break_end = path_container_front_[i].path_break.second.front();
-    double connect_dis_square = (break_end - break_start).squaredNorm();
-    if(connect_dis_square > 64)  // 大于4m，直接就不要了
+    double connect_dis_square = (break_end - break_start).norm();
+    if(connect_dis_square > 10)  // 大于4m，直接就不要了
     {
       // publishTestPath(path_container_front_[i].path_break.first, 1);
       // publishTestPath(path_container_front_[i].path_break.second, 2);
@@ -1918,8 +2005,8 @@ void TopologyPRM::reconnectTopoPaths()
       continue;
     Eigen::Vector3d break_start = path_container_back_[i].path_break.first.back();
     Eigen::Vector3d break_end = path_container_back_[i].path_break.second.front();
-    double connect_dis_square = (break_end - break_start).squaredNorm();
-    if(connect_dis_square > 64) continue; // 大于4m，直接就不要了
+    double connect_dis_square = (break_end - break_start).norm();
+    if(connect_dis_square > 10) continue; // 大于4m，直接就不要了
 
     // if(edt_environment_->evaluateCoarseEDT(break_start, -1, 1) <= 0.3 ||
     //    edt_environment_->evaluateCoarseEDT(break_end, -1, 1) <= 0.3)
@@ -1938,8 +2025,8 @@ void TopologyPRM::reconnectTopoPaths()
 void TopologyPRM::reconnectBreakPath(const int& path_id, const bool& inFront)
 {
   TopoPath& onePath = inFront ? path_container_front_[path_id] : path_container_back_[path_id]; 
-  astar2D_path_finder_->reset();
   if(onePath.path_break.first.empty() || onePath.path_break.second.empty()) return;
+  astar2D_path_finder_->reset();
   int search_result = astar2D_path_finder_->search(onePath.path_break.first.back(), 
                                                    onePath.path_break.second.front(), 0.8 * clearance_);
   if(search_result == 1) // REACH_END
@@ -2013,8 +2100,9 @@ void TopologyPRM::updateAllPaths()
       continue;
     }
 
-    // 这里不能直接接上去了。先判断start_change和XX是不是同伦，如果是，则直接修改path的起点；
+    // 这里不能直接接上去了。先判断start_change和当前路径是不是同伦，如果是，则直接修改path的起点；
     // 如果不是，则还是接到后面去short
+    // TODO，这里是不是可能出错？这个更新的时候，是不是不用考虑start_change，而是直接以当前起点为准，去找拓扑路径上从头开始的visible点？
     if(!start_change_.empty())
     {
       vector<Eigen::Vector3d> path1{start_change_[0], path_container_front_[i].path[1]};

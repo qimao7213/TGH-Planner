@@ -350,7 +350,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/trajectory
           Name: bspline_traj
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -366,7 +366,7 @@ Visualization Manager:
           Marker Topic: /planning/travel_traj_cmd
           Name: cmd_traj
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -418,7 +418,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/topo_path
           Name: TopoPath
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -459,7 +459,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/search_tree
           Name: search_tree
           Namespaces:
-            {}
+            "": true
           Queue Size: 100
           Value: true
         - Alpha: 1
@@ -1227,7 +1227,7 @@ Visualization Manager:
       Marker Topic: /planning_vis/perception_info
       Name: perception_info
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/Image
@@ -1675,7 +1675,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 38.63367462158203
+      Distance: 35.88283920288086
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1683,17 +1683,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 14.60366439819336
-        Y: -4.795752048492432
-        Z: -6.226578989299014e-06
+        X: 12.771032333374023
+        Y: -4.169947147369385
+        Z: 0
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.484796404838562
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 4.7652482986450195
+      Yaw: 4.635392665863037
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539

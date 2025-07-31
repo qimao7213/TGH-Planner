@@ -15,12 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_geometry_msgs
   plan_env
-  traj_utils
 )
 
 ## 声明 catkin 包
 catkin_package(
   INCLUDE_DIRS include
+  LIBRARIES dynavoro
   CATKIN_DEPENDS roscpp nav_msgs geometry_msgs
 )
 

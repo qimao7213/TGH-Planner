@@ -354,13 +354,13 @@ Visualization Manager:
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
-          Enabled: true
+          Enabled: false
           Marker Topic: /planning_vis/topo_graph
           Name: TopoGraph
           Namespaces:
             {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/Marker
           Enabled: true
           Marker Topic: /TopoPlan/graph
@@ -1096,6 +1096,24 @@ Visualization Manager:
       Topic: /start_pose
       Unreliable: false
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz/Map
+      Color Scheme: map
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic: /voronoi_grid
+      Unreliable: false
+      Use Timestamp: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /voronoi_gvg_markers
+      Name: MarkerArray
+      Namespaces:
+        gvg_vectices: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 253; 224
@@ -1123,7 +1141,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 26.575918197631836
+      Distance: 24.198406219482422
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1131,17 +1149,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -1.497721552848816
-        Y: -3.1547248363494873
-        Z: -2.1457672119140625e-06
+        X: 0.8961076736450195
+        Y: -4.314727783203125
+        Z: 7.152557373046875e-07
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.5547963380813599
       Target Frame: <Fixed Frame>
-      Yaw: 4.710092544555664
+      Yaw: 4.7050862312316895
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539

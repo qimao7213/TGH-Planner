@@ -38,7 +38,7 @@ include_directories(
     ${NLOPT_INCLUDE_DIR}
 )
 
-set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS} -O3 -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS} -O3 -Wall -march=native -msse")
 
 add_library( bspline_opt 
     src/bspline_optimizer.cpp 

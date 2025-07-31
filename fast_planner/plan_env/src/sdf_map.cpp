@@ -280,7 +280,7 @@ void SDFMap::initMapFromCostMap(ros::NodeHandle& nh)
 {
   topo_test_ = true;
   node_ = nh;
-  // perception地图为0.02，topo test的为0.1
+  // perception计算esdf时的地图为0.02，topo test的为0.1
   mp_.resolution_ = 0.1; //这个我要卡死为0.1。这个是内部地图的resolution，不是订阅的地图的resolution
   mp_.resolution_inv_ = 1.0 / mp_.resolution_;
   cost_map_sub_ = node_.subscribe<nav_msgs::OccupancyGrid>("/map", 10, &SDFMap::CostmapCallback, this);
@@ -2336,7 +2336,12 @@ void SDFMap::publishMap2D() {
   if(pub_all_map_)
   {
     min_cut = md_.total_bound_min_;
-    max_cut = md_.total_bound_max_;      
+    max_cut = md_.total_bound_max_; 
+    if (topo_test_)
+    {
+      min_cut = Eigen::Vector3i::Zero();
+      max_cut = mp_.map_voxel_num_;  
+    }     
   }
   static Eigen::Vector2i check_coord;
   posToIndex2D(check_point_, check_coord);
@@ -2681,6 +2686,11 @@ void SDFMap::publishESDF2D() {
   // max_cut = mp_.map_voxel_num_;    
   min_cut = md_.total_bound_min_;
   max_cut = md_.total_bound_max_;   
+  if (topo_test_)
+  {
+    min_cut = Eigen::Vector3i::Zero();
+    max_cut = mp_.map_voxel_num_;  
+  }
   boundIndex(min_cut);
   boundIndex(max_cut);
 
