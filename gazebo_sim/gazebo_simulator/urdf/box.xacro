@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="box_robot">
+
+  <!-- Box Link -->
+  <link name="base_link">
+    <visual>
+      <geometry>
+        <box size="0.5 0.25 0.25"/>
+      </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="1.0"/>
+      <origin xyz="0 0 0"/>
+      <inertia
+        ixx="0.01" ixy="0.0" ixz="0.0"
+        iyy="0.01" iyz="0.0"
+        izz="0.01"/>
+    </inertial>
+  </link>
+
+  <!-- 包含相机的 xacro 文件 -->  <!-- 相机相对于父链接（parent）的位姿 -->
+  <xacro:include filename="$(find gazebo_simulator)/urdf/camera_sensor.xacro"/>
+  <xacro:camera_sensor parent="base_link" xyz="0 0 0.3" rpy="0 0 0"/>
+
+  <!-- 包含激光雷达的 xacro 文件 -->
+  <!-- <joint name="lidar_platform" type="fixed" >
+    <parent link="base_link" />
+    <child link="lidar_link" />
+    <origin xyz="0 0 0.5" rpy="0 0 0" />
+  </joint>
+  <xacro:include filename="$(find gazebo_simulator)/urdf/livox_mid360.xacro"/> -->
+
+
+</robot>

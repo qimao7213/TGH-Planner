@@ -1,0 +1,47 @@
+# 测试转向用的
+# waypts_x: [8, 15, 10]
+# waypts_y: [0, 0, 0]
+# waypts_yaw: [-200, -180, 0] #使用角度制，比较方便
+
+# 测试perception用的
+# waypts_x: [-30, 4.11]
+# waypts_y: [-40, -4.02]
+# waypts_yaw: [0, -145] #使用角度制，比较方便
+
+
+# waypts_x: [-14.6]
+# waypts_y: [0.73]
+# waypts_yaw: [180] #使用角度制，比较方便
+
+# gazebo world: icra0
+# waypts_x: [27]
+# waypts_y: [-1]
+# waypts_yaw: [0] #使用角度制，比较方便
+
+# gazebo world: zigzag7
+# waypts_x: [-2]
+# waypts_y: [-26]
+# waypts_yaw: [-90] #使用角度制，比较方便
+
+
+# gazebo world: bugtrap
+# waypts_x: [17]
+# waypts_y: [-10]
+# waypts_yaw: [-90] #使用角度制，比较方便
+
+
+# 测试为什么有一个坏的路径点
+# waypts_x: [4.42701]
+# waypts_y: [-3.6481]
+# waypts_yaw: [-90] #使用角度制，比较方便
+
+# 测试egvg用，scene_6
+waypts_x: [-4, -22, -14, 32.5, 33, -45]
+waypts_y: [5, -17.5, -39, -39.6, -5.5, 22]
+waypts_yaw: [0, 0, 0, 0, 0, 0, 0] #使用角度制，比较方便
+
+# 测试egvg用,scene_sprase
+# waypts_x: [-50, 50, -47, 50, -42, 50]
+# waypts_y: [-26, -27, -42, 42, 26, -34]
+# waypts_yaw: [0, 0, 0, 0, 0, 0] #使用角度制，比较方便
+

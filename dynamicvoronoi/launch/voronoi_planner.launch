@@ -1,0 +1,4 @@
+<launch>
+    <node pkg="dynavoro" type="voronoi_planner_node" name="voronoi_planner_node" output="screen">
+    </node>
+</launch>

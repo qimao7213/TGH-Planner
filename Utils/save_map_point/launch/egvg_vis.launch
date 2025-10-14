@@ -1,0 +1,11 @@
+<launch>
+
+    <node pkg="save_map_point" name="egvg_vis" type="egvg_vis" output="screen">
+        <param name="pcd_file" value="$(find gazebo_simulator)/world/scene_sprase.pcd"/>
+        <param name="offset_x" value="00.0"/>
+        <param name="offset_y" value="00.0"/>
+    </node>
+
+    <include file="$(find egvg_record)/launch/egvg_record.launch"/>
+
+</launch>

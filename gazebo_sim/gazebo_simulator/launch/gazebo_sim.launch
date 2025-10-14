@@ -1,0 +1,41 @@
+<launch>
+  <arg name="odom_name" default="/car/odom"/>
+  <arg name="reference_frame" default="map"/>
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="true"/>
+  <arg name="debug" default="false"/>
+  <arg name="verbose" default="true"/>
+  <arg name="sim_pose" default="true"/>
+  <env name="GAZEBO_MODEL_DATABASE_URI" value=""/>
+  <env name="IGN_FUEL_URL" value=""/>
+  <arg name="world_file"/>
+  <!-- <arg name="world_file" default="xx/icra0.world" /> -->
+  
+  <!-- Start gazebo and load the world -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch" >
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="gui" value="$(arg gui)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="debug" value="$(arg debug)"/>
+    <arg name="verbose" value="$(arg verbose)"/>
+    <arg name="world_name" value="$(arg world_file)"/>
+  </include>
+
+
+
+  <arg name="robot_model_name" default="simple_box"/>
+
+  <!-- 加载 URDF 模型 -->
+  <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find jackal_description)/urdf/jackal.urdf.xacro'"/>
+  <!-- 使用 robot_description 加载模型到 Gazebo -->
+  <node name="spawn_model" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model $(arg robot_model_name)" output="screen" />
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+
+  <group unless="$(arg sim_pose)">
+  <include file="$(find jackal_control)/launch/control.launch" />
+  </group>
+</launch>

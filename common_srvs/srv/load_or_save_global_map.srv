@@ -1,4 +1,0 @@
-int32 load_or_save
-string file_name
----
-bool success

@@ -1,0 +1,5 @@
+<library path="lib/libcar_simulator_nodelet">
+  <class name="car_simulator/Nodelet" type="car_simulator::Nodelet" base_class_type="nodelet::Nodelet">
+    <description></description>
+  </class>
+</library>

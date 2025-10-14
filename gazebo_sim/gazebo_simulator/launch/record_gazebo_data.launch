@@ -1,0 +1,5 @@
+<launch>
+    <node name="gazebo_simulator" pkg="gazebo_simulator" type="record_gazebo_data" output="screen" >
+    <param name="output_file" value="$(find traj_analysis)/traj_real.txt"/>
+    </node>
+</launch>

@@ -1,0 +1,148 @@
+<launch>
+  <arg name="FilePath" value="/home/bhrqhb/catkin_TGH_new/src/TGH_Planner/"/>
+  <!-- 对于real，只需要修改max_vel_，max_acc_，还有sdf_map里面的障碍物高度、scan密度，以及cmu local planner里面的障碍物高度 -->
+  <!-- use_teb表示mpc输出的指令是cmd_vel类型的 -->
+  <arg name="Diff_Model" value="false"/>
+  <arg name="B_Spline_LocalPlanner" value = "false"/>
+  <arg name="sim_pose" value="false"/>
+
+  <!--用来校正gazebo的原点和本算法world坐标系的原点-->
+  <arg name="offset_gazebo_world_x" value="20"/> 
+  <arg name="offset_gazebo_world_y" value="20"/>
+
+  <!--这个odom是仿真的-->
+  <arg name="robot_odom" value="/car_odom"/>
+  <arg name="sensor_odom" value="/Odometry"/>
+  <arg name="sensor_odom_parent_frame"  value="camera_init"/>
+  <arg name="perception_data_topic" value="/livox/lidar_points"/>
+  <arg name="max_vel_" value="0.5" />
+  <arg name="max_acc_" value="1.0" />
+  <arg name="offset_world_to_camerainit_x" value="40.0"/>
+  <arg name="offset_world_to_camerainit_y" value="-40.0"/>
+
+  <arg name="max_steering_angel" value="45.0"/>
+  <arg name="wheel_base" value="0.5"/>
+  <!-- size of map, change the size in x, y, z according to your application -->
+  <!-- scene_sprase是110*110，scene_6是100*100 -->
+  <arg name="map_size_x" value="100.0"/>
+  <arg name="map_size_y" value="100.0"/>
+  <arg name="map_size_z" value=" 2.5"/>
+
+  <!-- odom_topic是planner订阅用于规划 -->
+  <!-- perception_data是sdf_map订阅用于建图，数据的位姿直接去tf里面查询，就不用再订阅传感器的位姿了 -->
+  <!-- perception_data_type，用于处理depth_image = 1, 或者 point_cloud = 1-->
+  <!-- lidar_link是雷达安装的位置，和小车的坐标轴一致 -->
+  <!-- camera_link是相机安装的位置，和小车的坐标轴一致；camera_frame是图像帧的坐标轴，z轴朝前，x朝左，y朝右 -->
+  <!-- 当前lidar的感知范围为11m， max_ray_length要比这个小才行-->
+  <arg name="odom_topic" value="$(arg robot_odom)" />
+  <arg name="lidar_link" value="body" />  
+
+  <arg name="camera_link" value="d435_link" />
+  <arg name="camera_frame" value="d435_depth_optical_frame" />  
+
+  <!-- <arg name="perception_data_type" value="1" />
+  <arg name="perception_data" value="/d435/depth/image_raw"/>
+  <arg name="min_ray_length" value="0.1"/>
+  <arg name="max_ray_length" value="7.0"/> -->
+
+  <arg name="perception_data_type" value="2" />
+  <arg name="perception_data" value="$(arg perception_data_topic)"/>
+  <arg name="min_ray_length" value="0.1"/>
+  <arg name="max_ray_length" value="10.0"/>
+
+  <param name="/use_sim_time" value="false" />
+  <!-- main algorithm params -->
+  <include file="$(find plan_manage)/launch/kino_algorithm.xml">
+
+    <arg name="FilePath" value="$(arg FilePath)"/>
+    <arg name="wheel_base_" value="$(arg wheel_base)"/> 
+    <arg name="map_size_x_" value="$(arg map_size_x)"/>
+    <arg name="map_size_y_" value="$(arg map_size_y)"/>
+    <arg name="map_size_z_" value="$(arg map_size_z)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="perception_odom_topic" value="$(arg sensor_odom)"/>
+    <arg name="perception_data" value="$(arg perception_data)"/>
+    <arg name="perception_data_type" value="$(arg perception_data_type)"/>
+    <arg name="camera_frame" value="$(arg camera_frame)"/>
+    <arg name="camera_link" value="$(arg camera_link)"/>
+    <arg name="lidar_link" value="$(arg lidar_link)"/>
+    <arg name="min_ray_length" value="$(arg min_ray_length)"/>
+    <arg name="max_ray_length" value="$(arg max_ray_length)"/>
+    <!-- depth topic: depth image, 640x480 by default -->
+    <!-- this param should consist with camera.yaml -->
+    <!-- if use gazebo, this should consist with depth_camera_info -->
+    <arg name="cx" value="320.0"/>
+    <arg name="cy" value="240.0"/>
+    <arg name="fx" value="381.3624572753906"/>
+    <arg name="fy" value="381.3624572753906"/>
+
+    <!-- maximum velocity and acceleration the drone will reach -->
+    <arg name="max_vel" value="$(arg max_vel_)" />
+    <arg name="max_acc" value="$(arg max_acc_)" />
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/> 
+    <!-- 1: use 2D Nav Goal to select goal  -->
+    <!-- 2: use global waypoints below  -->
+    <arg name="flight_type" value="1" />
+    <arg name="B_Spline_LocalPlanner" value="$(arg B_Spline_LocalPlanner)"/>
+  </include>
+
+  <!-- trajectory server -->
+  <node pkg="plan_manage" name="traj_server" type="traj_server" output="screen">
+    <remap from="/position_cmd" to="planning/pos_cmd"/>
+
+    <remap from="/odom_world" to="$(arg odom_topic)"/>
+    <param name="traj_server/time_forward" value="1.5" type="double"/>
+    <param name="FilePath" value="$(arg FilePath)" type="string"/>
+  </node>
+
+  <node pkg="waypoint_generator" name="waypoint_generator" type="waypoint_generator" output="screen">
+    <remap from="~odom" to="$(arg odom_topic)"/>        
+    <remap from="~goal" to="/move_base_simple/goal"/>
+    <remap from="~traj_start_trigger" to="/traj_start_trigger" />
+    <!-- manual-lonely-waypoint：从rviz里面选点。waypts-target-2D：QHB规划实验用的 -->
+    <!-- MODE -->
+    <param name="waypoint_type" value="manual-lonely-waypoint"/> 
+    <!-- <param name="waypoint_type" value="waypts-target-2D"/>  -->
+    <rosparam file="$(find plan_manage)/config/waypts_2d.yaml"/>  
+  </node>
+  <node pkg="tf2_ros" type="static_transform_publisher" name="world_map_link" args="0 0 0 0 0 0 1 /world /map"/>
+  <arg name="slam_link_x" value="$(eval 0.2 - offset_world_to_camerainit_x)" />
+  <arg name="slam_link_y" value="$(eval 0.0 - offset_world_to_camerainit_y)" />
+  <node pkg="tf2_ros" type="static_transform_publisher" name="SLAM_link"
+      args="$(arg slam_link_x) $(arg slam_link_y) 0.6 0 0.17365 0 0.98480 /world /camera_init"/>  
+  <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_in_lidar_tf"
+      args="0.0173 0 -0.6322 0 -0.17365 0 0.98480 /$(arg lidar_link) /base_link" /> -->
+  
+  <node pkg="sensor_conversion" type="slam_sim_output_node" name="slam_sim_output_node" output="log" required="true">
+      <param name="sensor_odom_parent_frame" value="$(arg sensor_odom_parent_frame)" />
+      <param name="car_odom_topic" value="$(arg robot_odom)" />
+      <param name="sensor_odom_topic" value="$(arg sensor_odom)" />
+      <param name="local_cloud_sub_topic" value="$(arg perception_data)" />
+      <param name="lidar_frame" value="$(arg lidar_link)"/>
+      <param name="base_frame" value="base_link"/>
+      <param name="offset_gazebo_world_x" value="$(arg offset_gazebo_world_x)"/>
+      <param name="offset_gazebo_world_y" value="$(arg offset_gazebo_world_y)"/>
+      <param name="down_voxel_size" value="0.1"/>
+      <param name="is_sim" value="false"/>
+  </node>
+
+  <!-- car_mpc和cmu_planner只能开一个，对应不同的控制模式 -->
+  <group if="$(arg B_Spline_LocalPlanner)">
+  <include file="$(find car_mpc)/launch/car_mpc.launch">
+    <arg name="wheel_base_" value="$(arg wheel_base)"/>  
+    <arg name="max_steering_angel_" value="$(arg max_steering_angel)"/>  
+    <arg name="max_vel" value="$(arg max_vel_)"/>
+    <arg name="max_acc" value="$(arg max_acc_)"/>
+    <arg name="odometry_topic" value="$(arg odom_topic)"/>
+    <arg name="Diff_Model" value="$(arg Diff_Model)"/>
+  </include>
+  </group>
+
+  <group unless="$(arg B_Spline_LocalPlanner)">
+    <include file="$(find local_planner)/launch/cmu_local_planner.launch">
+      <arg name="stateEstimationTopic" value="$(arg odom_topic)"/>
+      <arg name="max_vel" value="$(arg max_vel_)"/>
+      <arg name="max_acc" value="$(arg max_acc_)"/>
+    </include>
+  </group>
+</launch>

@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"  name="camera_sim">
+
+  <!-- Camera Sensor -->
+  <xacro:macro name="camera_sensor" params="parent xyz rpy">
+
+    <!-- 定义了一个相机的实体 -->
+    <link name="camera_link">
+      <visual>
+        <geometry>
+          <box size="0.3 0.2 0.3"/>
+        </geometry>
+        <material name="black">
+          <color rgba="0 0 0 1"/>
+        </material>
+      </visual>
+      <inertial>
+        <mass value="0.2"/>
+        <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+      </inertial>
+    </link>
+    <!-- 使用Gazebo Camera Plugin，给相机实体添加仿真相机 -->
+    <gazebo reference="camera_link">
+      <sensor type="depth" name="camera_sensor">
+        <update_rate>30.0</update_rate>
+        <camera name="camera">
+          <horizontal_fov>1.39616</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+            <format>R8G8B8</format>
+          </image>
+          <clip>
+            <near>0.1</near>
+            <far>20</far>
+          </clip>
+        </camera>
+        <plugin name="camera_controller" filename="libgazebo_ros_openni_kinect.so">
+          <alwaysOn>true</alwaysOn>
+          <updateRate>30.0</updateRate>
+          <cameraName>camera2</cameraName>
+          <imageTopicName>rgb/image_raw</imageTopicName>
+          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>depth/image_raw</depthImageTopicName>
+          <depthCameraInfoTopicName>depth/camera_info</depthCameraInfoTopicName>
+          <frameName>support_depth</frameName>
+          <!-- <hackBaseline>0.07</hackBaseline>
+          <distortionK1>0.0</distortionK1>
+          <distortionK2>0.0</distortionK2>
+          <distortionK3>0.0</distortionK3>
+          <distortionT1>0.0</distortionT1>
+          <distortionT2>0.0</distortionT2> -->
+        </plugin>
+      </sensor>
+    </gazebo>
+
+    <!-- 定义了一个固定的关节，用于连接camera_link和parent -->
+    <joint name="camera_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="camera_link"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+  </xacro:macro>
+
+</robot>

@@ -1,0 +1,76 @@
+<launch>
+  <arg name="sim_pose"/>
+  <arg name="used_odom_name"/>
+  <arg name="wheel_base_"/>  
+  <arg name="max_steering_angel_"/>  
+  <arg name="max_vel"/>
+  <arg name="max_acc"/>
+
+  <arg name="car_cmd" value="/car/cmd"/>
+  <arg name="car_cmd_ros" value="/cmd_vel"/>
+  <!-- <arg name="init_x" value="10.0"/>
+  <arg name="init_y" value="-0.0"/>
+  <arg name="init_z" value="0.5"/> 
+  <arg name="init_phi" value="180"/>  -->
+  <!-- icra0 -25, -24, phi:0 -->
+  <!-- bugtrap10 -25, 0, phi:0 -->
+  <!-- zigzag -25, -24, phi:0 -->
+  <!-- local plan 0 0 0 , phi: 90-->
+  <!-- perception: 1, -6, phi: 90 -->
+  <!-- 如果不用set_pos的方式，那么这个初始设置可能就没有用了 -->
+  <arg name="init_x" default="0"/>
+  <arg name="init_y" default="0"/>
+  <arg name="init_z" default="0.1"/> 
+  <!-- 对init_z解释：对于二维的情况，z轴是不改变的。car的位姿用于设置gazebo里面model的位姿，对应的是base_link，对应的是机器人和地面的接触部分 -->
+  <!-- 因此，init_z要稍微比地面高一点？不然gazebo里面机器人和地面发生碰撞而不稳定  -->
+  <!-- 如果gazebo机器人的位姿不是set_model_node确定，而是由物理算出来的，那么这一部分应该就不用考虑了 -->
+
+  <arg name="init_phi" default="0"/> 
+  <arg name="obj_num" value="1" />
+  <arg name="Diff_Model"/>  
+  <arg name="map_size_x_"/>
+  <arg name="map_size_y_"/>
+  <arg name="map_size_z_"/>
+  <arg name="c_num"/>
+  <arg name="p_num"/>
+  <arg name="w_num"/>
+  <arg name="u_w_num"/>
+  <arg name="odometry_topic"/>
+  <arg name="world_name"/>
+
+  <arg name="offset_gazebo_world_x" default="0"/>
+  <arg name="offset_gazebo_world_y" default="0"/>
+  <arg name="offset_gazebo_world_z" default="0"/>
+
+
+  <!-- car simulator -->
+  <group if="$(arg sim_pose)">
+    <node pkg="nodelet" type="nodelet" name="car_simulator" args="standalone car_simulator/Nodelet" output="screen">
+      <param name="simulator/init_state_x" value="$(arg init_x)"/>
+      <param name="simulator/init_state_y" value="$(arg init_y)"/>
+      <param name="simulator/init_state_z" value="$(arg init_z)"/>
+      <param name="simulator/phi" value="$(arg init_phi)"/>
+      <param name="simulator/wheel_base"   value="$(arg wheel_base_)"/>
+      <param name="simulator/Diff_Model" value="$(arg Diff_Model)"/>
+      <param name="rate/odom" value="200.0"/>
+
+      <param name="simulator/offset_gazebo_world_x" value="$(arg offset_gazebo_world_x)" type="double"/>
+      <param name="simulator/offset_gazebo_world_y" value="$(arg offset_gazebo_world_y)" type="double"/>
+      <param name="simulator/offset_gazebo_world_z" value="$(arg offset_gazebo_world_z)" type="double"/>
+      <param name="simulator/odom_name" value="$(arg used_odom_name)" />
+      <param name="simulator/robot_model_name" value="simple_box" />
+      <param name="simulator/reference_frame" value="world" />
+
+      <remap from="~odom_test" to="$(arg used_odom_name)"/>
+      <remap from="~cmd"  to="$(arg car_cmd)"/>
+      <remap from="~cmd_ros" to="$(arg car_cmd_ros)"/>
+    </node>
+  </group>
+
+  <include file="$(find gazebo_simulator)/launch/gazebo_sim.launch">
+    <arg name="odom_name" value="$(arg used_odom_name)"/>
+    <arg name="sim_pose" value="$(arg sim_pose)"/>
+    <arg name="world_file" value="$(arg world_name)"/>
+  </include>
+
+</launch>

@@ -1,5 +1,0 @@
-<library path="lib/libcar_mpc_nodelet">
-  <class name="car_mpc/Nodelet" type="car_mpc::Nodelet" base_class_type="nodelet::Nodelet">
-    <description></description>
-  </class>
-</library>

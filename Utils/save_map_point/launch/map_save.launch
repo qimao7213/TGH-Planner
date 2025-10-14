@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="save_map_point" name="save_map_point_node" type="save_map_point" output="screen">
+    <param name="output_file" value="$(find save_map_point)/map_point/map_points.txt"/>
+    </node>
+</launch>

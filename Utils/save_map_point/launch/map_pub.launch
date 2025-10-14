@@ -1,0 +1,10 @@
+<launch>
+    <node pkg="save_map_point" name="pub_map" type="pub_map.py" output="screen">
+        <param name="map_txt_path" value="$(find save_map_point)/map_point/scene_6.txt"/>
+    </node>
+
+    <node pkg="save_map_point" name="egvg_vis" type="egvg_vis.py" output="screen"/>
+
+    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find plan_manage)/config/traj_egvg_vis.rviz" />
+
+</launch>

@@ -1,0 +1,36 @@
+<launch>
+  <arg name="stateEstimationTopic" default="/car_odom"/>
+  <node pkg="terrain_analysis" type="terrainAnalysis" name="terrainAnalysis" output="log" required="true">
+
+    <remap from="/registered_scan" to="/registered_point_cloud"/>
+    <remap from="/state_estimation" to="/car_odom"/>
+
+    <param name="scanVoxelSize" type="double" value="0.1" />
+    <param name="decayTime" type="double" value="2.0" />
+    <param name="noDecayDis" type="double" value="4.0" />
+    <param name="clearingDis" type="double" value="8.0" />
+    <param name="useSorting" type="bool" value="false" />
+    <param name="quantileZ" type="double" value="0.25" />
+    <param name="considerDrop" type="bool" value="false" />
+    <param name="limitGroundLift" type="bool" value="false" />
+    <param name="maxGroundLift" type="double" value="0.15" />
+    <param name="clearDyObs" type="bool" value="true" />
+    <param name="minDyObsDis" type="double" value="0.3" />
+    <param name="minDyObsAngle" type="double" value="0" />
+    <param name="minDyObsRelZ" type="double" value="-0.5" />
+    <param name="minDyObsVFOV" type="double" value="-16.0" />
+    <param name="maxDyObsVFOV" type="double" value="45.0" />
+    <param name="halfFOV" type="double" value="180.0" />
+    <param name="minDyObsPointNum" type="int" value="1" />
+    <param name="noDataObstacle" type="bool" value="false" />
+    <param name="noDataBlockSkipNum" type="int" value="0" />
+    <param name="minBlockPointNum" type="int" value="10" />
+    <param name="vehicleHeight" type="double" value="0.52" />
+    <param name="voxelPointUpdateThre" type="int" value="100" />
+    <param name="voxelTimeUpdateThre" type="double" value="2.0" />
+    <param name="minRelZ" type="double" value="-0.3"/>
+    <param name="maxRelZ" type="double" value="1.5" />
+    <param name="disRatioZ" type="double" value="0.2" />
+  </node>
+
+</launch>

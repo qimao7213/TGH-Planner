@@ -1,0 +1,6 @@
+<launch>
+  <node pkg="egvg_record" type="egvg_record" name="egvg_record" output="screen">
+    <param name="FilePath" value="/home/bhrqhb/catkin_TGH_new/src/TGH_Planner/" type="string"/>
+  </node>
+
+</launch>
