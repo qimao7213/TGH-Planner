@@ -32,3 +32,7 @@ target_link_libraries(egvg_vis
   ${catkin_LIBRARIES}
   )
 
+add_executable (pointcloud_accumulator src/pointcloud_accumulator.cpp )
+target_link_libraries(pointcloud_accumulator
+  ${catkin_LIBRARIES}
+  )

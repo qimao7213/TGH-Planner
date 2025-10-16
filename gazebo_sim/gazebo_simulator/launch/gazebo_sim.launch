@@ -3,7 +3,7 @@
   <arg name="reference_frame" default="map"/>
   <arg name="paused" default="false"/>
   <arg name="use_sim_time" default="true"/>
-  <arg name="gui" default="true"/>
+  <arg name="gui" default="false"/>
   <arg name="headless" default="true"/>
   <arg name="debug" default="false"/>
   <arg name="verbose" default="true"/>

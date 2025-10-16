@@ -107,10 +107,10 @@
     <rosparam file="$(find plan_manage)/config/waypts_2d.yaml"/>  
   </node>
   <node pkg="tf2_ros" type="static_transform_publisher" name="world_map_link" args="0 0 0 0 0 0 1 /world /map"/>
-  <arg name="slam_link_x" value="$(eval 0.2 - offset_world_to_camerainit_x)" />
+  <arg name="slam_link_x" value="$(eval 0.0 - offset_world_to_camerainit_x)" />
   <arg name="slam_link_y" value="$(eval 0.0 - offset_world_to_camerainit_y)" />
   <node pkg="tf2_ros" type="static_transform_publisher" name="SLAM_link"
-      args="$(arg slam_link_x) $(arg slam_link_y) 0.6 0 0.17365 0 0.98480 /world /camera_init"/>  
+      args="$(arg slam_link_x) $(arg slam_link_y) 1.1 0 0.130526 0 0.991444 /world /camera_init"/>  
   <!-- <node pkg="tf2_ros" type="static_transform_publisher" name="base_in_lidar_tf"
       args="0.0173 0 -0.6322 0 -0.17365 0 0.98480 /$(arg lidar_link) /base_link" /> -->
   
@@ -146,4 +146,5 @@
       <arg name="max_acc" value="$(arg max_acc_)"/>
     </include>
   </group>
+  <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find plan_manage)/config/traj.rviz" respawn="true"/>
 </launch>

@@ -3,20 +3,20 @@
   
   <!-- use_teb表示mpc输出的指令是cmd_vel类型的 -->
   <arg name="Diff_Model" default="false"/>
-  <arg name="B_Spline_LocalPlanner" default = "false"/>
-  <arg name="sim_pose" default="false"/>
+  <arg name="B_Spline_LocalPlanner" default = "true"/>
+  <arg name="sim_pose" default="true"/>
 
   <!--offset_gazebo_world用来校正gazebo的原点和本算法world坐标系的原点-->
   <!-- 在sim_pose = false时，-offset_gazebo_world_x = 小车在rviz下真正初始位置，在gazebo里面一定是原点 -->
   <!-- 在sim_pose = true时， init_x 就是小车在rviz下的真正初始位置，init_x + offset_gazebo_world_x = 小车在gazebo坐标系下的位置 -->
 
-  <arg name="init_x" value="-20.0"/>
-  <arg name="init_y" value="-20.0"/>
-  <arg name="init_phi" value="0.0"/>
+  <arg name="init_x" value="-22.0"/>
+  <arg name="init_y" value="-2.0"/>
+  <arg name="init_phi" value="90.0"/>
 
-  <arg name="offset_gazebo_world_x" value="40"/> 
-  <arg name="offset_gazebo_world_y" value="40"/>
-  <arg name="world_name" default="$(find gazebo_simulator)/world/icra0.world" />
+  <arg name="offset_gazebo_world_x" value="20"/> 
+  <arg name="offset_gazebo_world_y" value="0"/>
+  <arg name="world_name" default="$(find gazebo_simulator)/world/scene_6.world" />
 
   <!--这个odom是仿真的-->
   <arg name="robot_odom" value="/car_odom"/>

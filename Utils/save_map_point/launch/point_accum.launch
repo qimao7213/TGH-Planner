@@ -1,0 +1,7 @@
+<launch>
+    <node pkg="save_map_point" name="pointcloud_accumulator" type="pointcloud_accumulator" output="screen">
+    </node>
+
+    <node name="rviz_pointcloud_accumulator" pkg="rviz" type="rviz" output="log" args="-d $(find plan_manage)/config/point_accum.rviz" />
+
+</launch>

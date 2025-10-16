@@ -894,7 +894,7 @@ void SDFMap::projectDepthImage() {
                           mp_.height_obs_max_2D_, false, 0.1);
 }
 
-
+// Todo: 应该在这里就确定scan里面的点，哪些是free的，那些是hit的
 void SDFMap::pointcloudToLaserScan(
     const std::vector<Eigen::Vector3d>& pt_cloud,
     sensor_msgs::LaserScan& scan_msg,
@@ -927,7 +927,7 @@ void SDFMap::pointcloudToLaserScan(
     if (use_inf) {
         scan_msg.ranges.assign(ranges_size, std::numeric_limits<float>::infinity());
     } else {
-        scan_msg.ranges.assign(ranges_size, range_max + inf_epsilon);
+        scan_msg.ranges.assign(ranges_size, std::nanf(""));
     }
     md_.bearing_.assign(ranges_size, std::numeric_limits<float>::quiet_NaN());
 
@@ -957,21 +957,28 @@ void SDFMap::pointcloudToLaserScan(
           // ++ unvalid_points_num2;
           continue;
         }
-        // 对range比较大的点云，增加高度容忍度
+        
+        // 对range比较大的点云，增加高度容忍度 
         float range = std::hypot(iter_x, iter_y);
-        float heighr_margin = (range > 0.5 * range_max) ? 0.04 * (range - 0.5 * range_max) : 0.0f;
-        if (iter_z > (max_height + heighr_margin) || iter_z < (min_height - heighr_margin)) 
+        if (range > range_max) 
         {
-          // ++ unvalid_points_num;
-          continue;
+          range = range_max + inf_epsilon;
         }
-
-        if (range > range_max) continue;
         else if (range < range_min) 
         {
           range = range_min + 2 * 1e-3;
           // ++ unvalid_points_num2;
         }
+
+        float heighr_margin = (range > 0.5 * range_max) ? 0.04 * (range - 0.5 * range_max) : 0.0f;
+        // std::cout << "iter_z: " << iter_z << ", range: " << range << ", heighr_margin: " << heighr_margin << ", range_max: " << range_max << std::endl;
+        if ((iter_z > (max_height + heighr_margin) || iter_z < (min_height - heighr_margin)) && (range < range_max)) 
+        {
+          // ++ unvalid_points_num;
+          // ROS_WARN("00000000");
+          continue;
+        }
+        
 
         float angle = std::atan2(iter_y, iter_x);
         if (angle < angle_min || angle > angle_max) continue;
@@ -980,8 +987,7 @@ void SDFMap::pointcloudToLaserScan(
         int index = static_cast<int>(std::lround(fidx));  // 最近束
         index = std::max(0, std::min<int>(ranges_size - 1, index));
         if (index < 0 || index >= (int)ranges_size) continue;
-
-        if (range < scan_msg.ranges[index]) {
+        if (std::isnan(scan_msg.ranges[index]) || range < scan_msg.ranges[index]) {
             scan_msg.ranges[index] = range;
             md_.bearing_[index] = angle; // 记下真实角度！
             // if (index != 15) continue;
@@ -2186,8 +2192,9 @@ void SDFMap::cloudCallback(const sensor_msgs::PointCloud2ConstPtr& lidar_pt) {
     //   // p3d_world = lidar_rotation * p3d_local + md_.camera_pos_;
     // }    
     
-    md_.proj_points_[md_.proj_points_cnt++] = p3d_world;
-    md_.proj_points_local_[md_.proj_points_cnt - 1] = p3d_local;
+    md_.proj_points_[md_.proj_points_cnt] = p3d_world;
+    md_.proj_points_local_[md_.proj_points_cnt] = p3d_local;
+    md_.proj_points_cnt++;
     // 判断点是否在地图内部
     // if (!isInMap(p3d_world)) {
     //   continue; // 如果点不在地图内部，舍弃

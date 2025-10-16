@@ -16,7 +16,6 @@ Panels:
         - /TF1/Frames1
         - /VORONOI1
         - /cmu_local_planner1
-        - /cmu_local_planner1/terrain_map1
         - /EGVG_VIS1
       Splitter Ratio: 0.5461847186088562
     Tree Height: 892
@@ -38,7 +37,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: local_map
+    SyncSource: depth_cloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -354,7 +353,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/trajectory
           Name: bspline_traj
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -422,7 +421,7 @@ Visualization Manager:
           Marker Topic: /planning_vis/topo_path
           Name: TopoPath
           Namespaces:
-            "": true
+            {}
           Queue Size: 100
           Value: true
         - Class: rviz/Marker
@@ -658,121 +657,6 @@ Visualization Manager:
             Expand Link Details: false
             Expand Tree: false
             Link Tree Style: Links in Alphabetic Order
-            base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            chassis_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            d435_bottom_screw_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_color_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_color_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_depth_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_depth_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_left_ir_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_left_ir_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            d435_right_ir_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            d435_right_ir_optical_frame:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            front_fender_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            front_left_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            front_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            front_right_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            imu_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            jackal/velodyne/VLP_16:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            jackal/velodyne/VLP_16_base_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            jackal/velodyne/gazebo_gt/odometry_sensor_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            mid_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            navsat_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_fender_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_left_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
-            rear_mount:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-            rear_right_wheel_link:
-              Alpha: 1
-              Show Axes: false
-              Show Trail: false
-              Value: true
           Name: RobotModel
           Robot Description: robot_description
           TF Prefix: ""
@@ -1041,12 +925,22 @@ Visualization Manager:
       Enabled: true
       Name: fiesta
     - Class: rviz/TF
-      Enabled: false
+      Enabled: true
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        base_link:
+          Value: true
+        body:
+          Value: true
+        camera_init:
+          Value: true
+        map:
+          Value: true
+        world:
+          Value: true
       Marker Alpha: 1
       Marker Scale: 10
       Name: TF
@@ -1054,9 +948,15 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        {}
+        world:
+          camera_init:
+            body:
+              base_link:
+                {}
+          map:
+            {}
       Update Interval: 0
-      Value: false
+      Value: true
     - Class: rviz/Group
       Displays:
         - Alpha: 1
@@ -1756,7 +1656,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
-      Distance: 25.288076400756836
+      Distance: 101.91947937011719
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -1764,17 +1664,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -25.791059494018555
-        Y: -47.264217376708984
-        Z: -1.1307540262350813e-05
+        X: -39.94667053222656
+        Y: 1.8567478656768799
+        Z: 2.0439001673366874e-06
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.3997976779937744
       Target Frame: <Fixed Frame>
-      Yaw: 4.712307453155518
+      Yaw: 3.2422990798950195
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 17.48538589477539

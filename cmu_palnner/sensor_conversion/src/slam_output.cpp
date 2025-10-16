@@ -69,7 +69,9 @@ SlamOutput::SlamOutput(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv
     }else
     {
         Eigen::Vector3d t_base_in_lidar(0.0173, 0.0, -0.6322);
-        Eigen::Quaterniond q_base_in_lidar(0.98480, 0.0, -0.17365, 0.0); // 四元数 (w, x, y, z)
+        Eigen::Quaterniond q_base_in_lidar(0.98480, 0.0, -0.17365, 0.0); // 小车用
+        // Eigen::Vector3d t_base_in_lidar(0.2847, 0.0, -1.062518);
+        // Eigen::Quaterniond q_base_in_lidar(0.989015, 0.0, -0.14781, 0.0); // 轮足用
         Eigen::Isometry3d T_L_B = Eigen::Isometry3d::Identity();
         T_L_B.linear() = q_base_in_lidar.toRotationMatrix();
         T_L_B.translation() = t_base_in_lidar;
