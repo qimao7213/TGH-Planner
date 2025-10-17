@@ -20,7 +20,7 @@ TGH focuses on generating executable and safe trajectories for non-holonomic rob
 </p>
 EGVG focuses on providing efficient global guidance for navigation in unknown environments.
 <p align="center">
-    <img src="files/EGVG_Simulation2.gif" alt="EGVG" width="50%">
+    <img src="files/EGVG-Simulation2.gif" alt="EGVG" width="50%">
 </p>
 
 Please kindly star :star: this project if it helps you. We take great efforts to develope and maintain it :grin::grin:.
