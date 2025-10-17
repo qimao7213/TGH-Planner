@@ -11,14 +11,17 @@ PDF Link: [TGH](https://www.techrxiv.org/users/897374/articles/1274757-tgh-plann
 [EGVG]().
 
 
-Video：[TGH-bilibili](https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe),
-[EGVG-bilibili]().
+Video：[TGH-bilibili]([https://www.bilibili.com/video/BV1pK98YfEuY/?spm_id_from=333.1387.upload.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe](https://www.bilibili.com/video/BV1xeWvznE8J/?spm_id_from=333.1387.homepage.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe)),
+[EGVG-bilibili](https://www.bilibili.com/video/BV1zCWYzvE4W/?spm_id_from=333.1387.homepage.video_card.click&vd_source=b0464106123611f8d997cd304ba81efe).
 
-
+TGH focuses on generating executable and safe trajectories for non-holonomic robots.
 <p align="center">
-    <img src="files/realworld_experiment.png" alt="Realworld Experiment" width="50%">
+    <img src="files/TGH-Planner.gif" alt="TGH" width="80%">
 </p>
-
+EGVG focuses on providing efficient global guidance for navigation in unknown environments.
+<p align="center">
+    <img src="files/EGVG-Simulation.gif" alt="EGVG" width="60%">
+</p>
 
 Please kindly star :star: this project if it helps you. We take great efforts to develope and maintain it :grin::grin:.
 
