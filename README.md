@@ -8,7 +8,7 @@ TGH, at the global level, maintains a global topological path container. At the 
 
 
 PDF Link: [TGH](https://www.techrxiv.org/users/897374/articles/1274757-tgh-planner-topology-guided-hierarchical-planner-for-nonholonomic-robots-in-unknown-and-complex-environments?commit=1f84764f4edc345d91a809fd2cc0ea9d6597c29c), 
-[EGVG]().
+[EGVG](https://www.techrxiv.org/users/897374/articles/1346772-enveloped-generalized-voronoi-graph-and-multi-topology-path-planning-for-navigation-in-unknown-environments).
 
 
 Video：[TGH-bilibili](https://www.bilibili.com/video/BV1xeWvznE8J?spm_id_from=333.788.player.switch&vd_source=b0464106123611f8d997cd304ba81efe),
