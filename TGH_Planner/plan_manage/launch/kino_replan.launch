@@ -3,8 +3,8 @@
   
   <!-- use_teb表示mpc输出的指令是cmd_vel类型的 -->
   <arg name="Diff_Model" default="false"/>
-  <arg name="B_Spline_LocalPlanner" default = "true"/>
-  <arg name="sim_pose" default="true"/>
+  <arg name="B_Spline_LocalPlanner" default = "false"/>
+  <arg name="sim_pose" default="false"/>
 
   <!--offset_gazebo_world用来校正gazebo的原点和本算法world坐标系的原点-->
   <!-- 在sim_pose = false时，-offset_gazebo_world_x = 小车在rviz下真正初始位置，在gazebo里面一定是原点 -->

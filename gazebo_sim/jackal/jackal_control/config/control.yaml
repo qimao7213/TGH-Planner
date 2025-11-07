@@ -37,4 +37,22 @@ jackal_velocity_controller:
       has_acceleration_limits: true
       max_acceleration       : 25.0   # rad/s^2
 
-
+# 添加这部分PID参数配置
+gazebo_ros_control:
+  pid_gains:
+    front_left_wheel:
+      p: 1.0
+      i: 0.2
+      d: 0.0
+    front_right_wheel:
+      p: 1.0
+      i: 0.2
+      d: 0.0
+    rear_left_wheel:
+      p: 1.0
+      i: 0.2
+      d: 0.0
+    rear_right_wheel:
+      p: 1.0
+      i: 0.2
+      d: 0.0

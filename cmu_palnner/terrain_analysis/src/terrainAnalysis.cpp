@@ -83,7 +83,7 @@ pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloud[terrainVoxelNum];
 
 int terrainVoxelUpdateNum[terrainVoxelNum] = {0};
 float terrainVoxelUpdateTime[terrainVoxelNum] = {0};
-float planarVoxelElev[planarVoxelNum] = {0};
+float planarVoxelElev[planarVoxelNum] = {0};      // 每个0.2*0.2m栅格内地面点的高度均值
 int planarVoxelEdge[planarVoxelNum] = {0};
 int planarVoxelDyObs[planarVoxelNum] = {0};
 vector<float> planarPointElev[planarVoxelNum];
@@ -275,6 +275,8 @@ int main(int argc, char **argv) {
             float terrainVoxelCenX = terrainVoxelSize * terrainVoxelShiftX;
             float terrainVoxelCenY = terrainVoxelSize * terrainVoxelShiftY;
 
+            // vehicleX是在世界坐标系下的
+            // 这里通过不断调整terrainVoxelShiftX和terrainVoxelShiftY的值，把vehile放到terrain的中心位置附近
             while (vehicleX - terrainVoxelCenX < -terrainVoxelSize) { 
                 for (int indY = 0; indY < terrainVoxelWidth; ++indY) {
                     pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloudPtr =
@@ -399,6 +401,8 @@ int main(int argc, char **argv) {
                 }
             }
 
+            // 保存的数据，比输出的数据要多很多
+            // 首先从terrainVoxelCloud中提取11×11范围的点云到terrainCloud
             terrainCloud->clear();
             for (int indX = terrainVoxelHalfWidth - 5;
                  indX <= terrainVoxelHalfWidth + 5; ++indX) {
@@ -420,6 +424,7 @@ int main(int argc, char **argv) {
             for (int i = 0; i < terrainCloudSize; ++i) {
                 point = terrainCloud->points[i];
 
+                // 该点在更加细分的平面体素中的索引
                 int indX =
                         int((point.x - vehicleX + planarVoxelSize / 2) / planarVoxelSize) +
                         planarVoxelHalfWidth;
