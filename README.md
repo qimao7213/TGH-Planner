@@ -147,5 +147,12 @@ Example code:
 ## 3. Deployment on A Real Robot
 We need **depth image**, **camera pose** and ?????. I will update this section later...
 
+## 4. Implementation details
+ROS, Gazebo v11, Fast-Lio2 ROS1 version.
+
+CPU: 2.1 GHz Intel Core i7-12700
+GPU: NVIDIA RTX 4060 Ti
+
+
 ## 4. 
 I will continue to improve this repository and enhance the code in the future.
