@@ -148,9 +148,10 @@ Example code:
 We need **depth image**, **camera pose** and ?????. I will update this section later...
 
 ## 4. Implementation details
-ROS, Gazebo v11, Fast-Lio2 ROS1 version.
+ROS1, Gazebo v11, Fast-Lio2 ROS1 version.
 
 CPU: 2.1 GHz Intel Core i7-12700
+
 GPU: NVIDIA RTX 4060 Ti
 
 
